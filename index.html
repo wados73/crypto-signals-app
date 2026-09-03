@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crypto Signals</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0e0e12; --card-bg: #1a1a20; --text: #e8e8ea; --text-dim: #8a8a92;
+    --green: #26c281; --red: #e5484d; --neutral: #4a4a52; --accent: #5b8def;
+  }
+  body.light {
+    --bg: #f4f4f6; --card-bg: #ffffff; --text: #17171b; --text-dim: #6b6b73;
+    --neutral: #d8d8dc;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 12px; }
+  .top-bar { display: flex; gap: 8px; margin-bottom: 16px; }
+  .search-bar { flex: 1; padding: 12px 16px; border-radius: 12px; border: none; background: var(--card-bg); color: var(--text); font-size: 15px; }
+  .icon-btn { background: var(--card-bg); border: none; color: var(--text); border-radius: 12px; padding: 0 14px; font-size: 18px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .card { background: var(--card-bg); border-radius: 14px; padding: 14px; position: relative; border-left: 3px solid var(--neutral); }
+  .card.up { border-left-color: var(--green); }
+  .card.down { border-left-color: var(--red); }
+  .card .ticker { font-weight: 700; font-size: 15px; display: flex; justify-content: space-between; }
+  .card .price { color: var(--text-dim); font-size: 13px; margin-top: 2px; }
+  .card .signal-badge { display: inline-block; margin-top: 8px; padding: 3px 8px; border-radius: 8px; font-size: 11px; font-weight: 600; }
+  .signal-badge.up { background: rgba(38,194,129,0.15); color: var(--green); }
+  .signal-badge.down { background: rgba(229,72,77,0.15); color: var(--red); }
+  .empty-state { text-align: center; color: var(--text-dim); padding: 40px 20px; font-size: 14px; }
+  .star { cursor: pointer; }
+  .star.active { color: #f5c518; }
+  .star.inactive { color: var(--text-dim); }
+
+  .screen { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg); z-index: 100; overflow-y: auto; padding: 12px; }
+  .screen.open { display: block; }
+  .header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .back-btn { background: var(--card-bg); border: none; color: var(--text); padding: 8px 14px; border-radius: 10px; font-size: 16px; }
+  .detail-title { font-size: 20px; font-weight: 700; }
+  .detail-price { color: var(--text-dim); font-size: 14px; }
+  .chart-container { background: var(--card-bg); border-radius: 14px; padding: 12px; margin-bottom: 14px; height: 220px; }
+  .section-title { font-size: 13px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 8px; }
+  .levels-box { background: var(--card-bg); border-radius: 14px; padding: 14px; margin-bottom: 14px; }
+  .levels-box .row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px; }
+  .levels-box .row .label { color: var(--text-dim); }
+  .signal-item { background: var(--card-bg); border-radius: 12px; padding: 12px; margin-bottom: 8px; font-size: 13px; }
+  .signal-item .src { font-weight: 600; margin-bottom: 2px; }
+  .signal-item .detail { color: var(--text-dim); }
+  .signal-item .time { color: var(--text-dim); font-size: 11px; margin-top: 4px; }
+  .history-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: var(--card-bg); border-radius: 12px; margin-bottom: 6px; font-size: 13px; }
+  .history-item .confirmed { color: var(--green); }
+  .history-item .not-confirmed { color: var(--red); }
+  .history-item .pending { color: var(--text-dim); }
+
+  .setting-row { background: var(--card-bg); border-radius: 14px; padding: 14px; margin-bottom: 10px; }
+  .setting-row .label { font-size: 14px; margin-bottom: 8px; color: var(--text-dim); }
+  .option-group { display: flex; gap: 8px; }
+  .option-btn { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--neutral); background: transparent; color: var(--text); font-size: 13px; }
+  .option-btn.selected { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .watchlist-item { display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); padding: 10px 14px; border-radius: 12px; margin-bottom: 6px; }
+  .remove-btn { background: transparent; border: none; color: var(--red); font-size: 18px; }
+</style>
+</head>
+<body>
+  <div class="top-bar">
+    <input class="search-bar" type="text" placeholder="Поиск монеты..." id="searchInput">
+    <button class="icon-btn" onclick="openSettings()">⚙</button>
+  </div>
+  <div class="grid" id="coinsGrid">
+    <div class="empty-state">Загрузка сигналов...</div>
+  </div>
+
+  <div id="detailScreen" class="screen">
+    <div class="header">
+      <button class="back-btn" onclick="closeScreen('detailScreen')">← Назад</button>
+      <div style="flex:1">
+        <div class="detail-title" id="detailTicker">—</div>
+        <div class="detail-price" id="detailPrice">—</div>
+      </div>
+      <span class="star" id="favStar" style="font-size:24px" onclick="toggleFavorite()">☆</span>
+    </div>
+    <div class="chart-container"><canvas id="priceChart"></canvas></div>
+    <div id="levelsSection"></div>
+    <div class="section-title">Сработавшие сигналы</div>
+    <div id="recentSignals"><div class="empty-state">Нет данных</div></div>
+    <div class="section-title">История сигналов по монете</div>
+    <div id="signalHistory"><div class="empty-state">Нет данных</div></div>
+  </div>
+
+  <div id="settingsScreen" class="screen">
+    <div class="header">
+      <button class="back-btn" onclick="closeScreen('settingsScreen')">← Назад</button>
+      <div class="detail-title">Настройки</div>
+    </div>
+
+    <div class="setting-row">
+      <div class="label">Тема оформления</div>
+      <div class="option-group">
+        <button class="option-btn" id="theme-dark" onclick="setSetting('theme','dark')">Тёмная</button>
+        <button class="option-btn" id="theme-light" onclick="setSetting('theme','light')">Светлая</button>
+      </div>
+    </div>
+
+    <div class="setting-row">
+      <div class="label">Чувствительность сигналов</div>
+      <div class="option-group">
+        <button class="option-btn" id="sens-low" onclick="setSetting('sensitivity','low')">Низкая</button>
+        <button class="option-btn" id="sens-medium" onclick="setSetting('sensitivity','medium')">Средняя</button>
+        <button class="option-btn" id="sens-high" onclick="setSetting('sensitivity','high')">Высокая</button>
+      </div>
+    </div>
+
+    <div class="setting-row">
+      <div class="label">Режим отображения</div>
+      <div class="option-group">
+        <button class="option-btn" id="mode-beginner" onclick="setSetting('display_mode','beginner')">Новичок</button>
+        <button class="option-btn" id="mode-advanced" onclick="setSetting('display_mode','advanced')">Продвинутый</button>
+      </div>
+    </div>
+
+    <div class="section-title">Избранное</div>
+    <div id="watchlistContainer"><div class="empty-state">Список пуст</div></div>
+  </div>
+
+<script>
+  const tg = window.Telegram.WebApp;
+  tg.ready();
+  tg.expand();
+
+  const API_BASE = "http://localhost:8000";
+  let priceChartInstance = null;
+  let currentUser = null;
+  let currentDetailSymbol = null;
+
+  const initData = tg.initDataUnsafe;
+  const TELEGRAM_ID = (initData && initData.user) ? String(initData.user.id) : "test_user_local";
+  const USERNAME = (initData && initData.user) ? (initData.user.username || "") : "wad_test";
+
+  async function initUser() {
+    const resp = await fetch(`${API_BASE}/api/users/register?telegram_id=${TELEGRAM_ID}&username=${USERNAME}`, { method: "POST" });
+    const data = await resp.json();
+    currentUser = data.user;
+    applyTheme(currentUser.theme);
+    highlightSettings();
+  }
+
+  function applyTheme(theme) {
+    document.body.classList.toggle("light", theme === "light");
+  }
+
+  function highlightSettings() {
+    ["theme-dark","theme-light","sens-low","sens-medium","sens-high","mode-beginner","mode-advanced"].forEach(id => {
+      document.getElementById(id).classList.remove("selected");
+    });
+    document.getElementById(`theme-${currentUser.theme}`).classList.add("selected");
+    document.getElementById(`sens-${currentUser.sensitivity}`).classList.add("selected");
+    document.getElementById(`mode-${currentUser.display_mode}`).classList.add("selected");
+  }
+
+  async function setSetting(key, value) {
+    tg.HapticFeedback.impactOccurred("light");
+    const resp = await fetch(`${API_BASE}/api/users/${TELEGRAM_ID}/settings?${key}=${value}`, { method: "PATCH" });
+    currentUser = await resp.json();
+    if (key === "theme") applyTheme(value);
+    highlightSettings();
+  }
+
+  function openSettings() {
+    document.getElementById("settingsScreen").classList.add("open");
+    renderWatchlist();
+  }
+
+  function closeScreen(id) {
+    document.getElementById(id).classList.remove("open");
+    if (id === "detailScreen" && priceChartInstance) { priceChartInstance.destroy(); priceChartInstance = null; }
+  }
+
+  function renderWatchlist() {
+    const el = document.getElementById("watchlistContainer");
+    if (!currentUser.watchlist || currentUser.watchlist.length === 0) {
+      el.innerHTML = '<div class="empty-state">Список пуст. Добавляй монеты через ☆ на детальном экране</div>';
+      return;
+    }
+    el.innerHTML = currentUser.watchlist.map(symbol => `
+      <div class="watchlist-item">
+        <span>${symbol}</span>
+        <button class="remove-btn" onclick="removeFavorite('${symbol}')">✕</button>
+      </div>
+    `).join("");
+  }
+
+  async function removeFavorite(symbol) {
+    await fetch(`${API_BASE}/api/users/${TELEGRAM_ID}/watchlist/${symbol}`, { method: "DELETE" });
+    currentUser.watchlist = currentUser.watchlist.filter(s => s !== symbol);
+    renderWatchlist();
+  }
+
+  async function toggleFavorite() {
+    if (!currentDetailSymbol) return;
+    const star = document.getElementById("favStar");
+    const isFav = currentUser.watchlist.includes(currentDetailSymbol);
+    if (isFav) {
+      await fetch(`${API_BASE}/api/users/${TELEGRAM_ID}/watchlist/${currentDetailSymbol}`, { method: "DELETE" });
+      currentUser.watchlist = currentUser.watchlist.filter(s => s !== currentDetailSymbol);
+      star.textContent = "☆"; star.classList.remove("active");
+    } else {
+      await fetch(`${API_BASE}/api/users/${TELEGRAM_ID}/watchlist/${currentDetailSymbol}`, { method: "POST" });
+      currentUser.watchlist.push(currentDetailSymbol);
+      star.textContent = "★"; star.classList.add("active");
+    }
+    tg.HapticFeedback.impactOccurred("medium");
+  }
+
+  async function loadActiveSignals() {
+    try {
+      const resp = await fetch(`${API_BASE}/api/coins/active-signals?limit=30`);
+      const data = await resp.json();
+      renderCoins(data.coins);
+    } catch (e) {
+      document.getElementById("coinsGrid").innerHTML = '<div class="empty-state">Не удалось загрузить данные.</div>';
+    }
+  }
+
+  function renderCoins(coins) {
+    const grid = document.getElementById("coinsGrid");
+    if (!coins || coins.length === 0) {
+      grid.innerHTML = '<div class="empty-state">Активных сигналов пока нет</div>';
+      return;
+    }
+    const watchlist = (currentUser && currentUser.watchlist) || [];
+    const sorted = [...coins].sort((a, b) => {
+      const aFav = watchlist.includes(a.symbol) ? 1 : 0;
+      const bFav = watchlist.includes(b.symbol) ? 1 : 0;
+      return bFav - aFav;
+    });
+    grid.innerHTML = sorted.map(coin => `
+      <div class="card ${coin.direction}" onclick="openCoinDetail('${coin.symbol}')">
+        <div class="ticker"><span>${coin.symbol}</span>${watchlist.includes(coin.symbol) ? '<span style="color:#f5c518">★</span>' : ''}</div>
+        <div class="price">${coin.price ? '$' + coin.price : '—'}</div>
+        <div class="signal-badge ${coin.direction}">
+          ${coin.direction === 'up' ? '▲ ВВЕРХ' : '▼ ВНИЗ'} · ${coin.signal_count} сигн.
+        </div>
+      </div>
+    `).join("");
+  }
+
+  document.getElementById("searchInput").addEventListener("input", async (e) => {
+    const query = e.target.value.trim();
+    if (query.length < 2) { loadActiveSignals(); return; }
+    const resp = await fetch(`${API_BASE}/api/coins/search?query=${encodeURIComponent(query)}`);
+    const data = await resp.json();
+    renderCoins(data.coins.map(c => ({...c, direction: 'neutral', signal_count: 0})));
+  });
+
+  async function openCoinDetail(symbol) {
+    tg.HapticFeedback.impactOccurred("light");
+    currentDetailSymbol = symbol;
+    document.getElementById("detailScreen").classList.add("open");
+    document.getElementById("detailTicker").textContent = symbol;
+    document.getElementById("detailPrice").textContent = "Загрузка...";
+    document.getElementById("levelsSection").innerHTML = "";
+    document.getElementById("recentSignals").innerHTML = '<div class="empty-state">Загрузка...</div>';
+    document.getElementById("signalHistory").innerHTML = '<div class="empty-state">Загрузка...</div>';
+
+    const star = document.getElementById("favStar");
+    const isFav = currentUser.watchlist.includes(symbol);
+    star.textContent = isFav ? "★" : "☆";
+    star.classList.toggle("active", isFav);
+
+    try {
+      const resp = await fetch(`${API_BASE}/api/coins/${symbol}`);
+      const data = await resp.json();
+      renderDetail(data);
+    } catch (e) {
+      document.getElementById("detailPrice").textContent = "Монета не найдена в базе";
+    }
+    loadPriceChart(symbol);
+  }
+
+  function renderDetail(data) {
+    const coin = data.coin;
+    document.getElementById("detailPrice").textContent =
+      `$${coin.price ?? '—'}  (${coin.price_change_24h_pct != null ? coin.price_change_24h_pct.toFixed(2) + '%' : '—'} за 24ч)`;
+
+    const lastAlert = data.signal_history && data.signal_history[0];
+    if (lastAlert && lastAlert.take_profit) {
+      document.getElementById("levelsSection").innerHTML = `
+        <div class="levels-box">
+          <div class="row"><span class="label">Направление</span><span>${lastAlert.direction === 'up' ? '▲ ВВЕРХ' : '▼ ВНИЗ'}</span></div>
+          <div class="row"><span class="label">Вход</span><span>${lastAlert.price_at_trigger ?? '—'}</span></div>
+          <div class="row"><span class="label">Тейк-профит</span><span>${lastAlert.take_profit ?? '—'}</span></div>
+          <div class="row"><span class="label">Стоп-лосс</span><span>${lastAlert.stop_loss ?? '—'}</span></div>
+        </div>`;
+    }
+
+    const signalsEl = document.getElementById("recentSignals");
+    if (data.recent_signals && data.recent_signals.length > 0) {
+      signalsEl.innerHTML = data.recent_signals.map(s => `
+        <div class="signal-item">
+          <div class="src">${s.source} · ${s.direction === 'up' ? '▲' : '▼'}</div>
+          <div class="detail">${s.detail || ''}</div>
+          <div class="time">${new Date(s.created_at).toLocaleString('ru-RU')}</div>
+        </div>`).join("");
+    } else {
+      signalsEl.innerHTML = '<div class="empty-state">Сигналов пока не было</div>';
+    }
+
+    const historyEl = document.getElementById("signalHistory");
+    if (data.signal_history && data.signal_history.length > 0) {
+      historyEl.innerHTML = data.signal_history.map(a => {
+        let statusClass = "pending", statusText = "ожидание";
+        if (a.was_confirmed_24h === true) { statusClass = "confirmed"; statusText = "подтвердился"; }
+        else if (a.was_confirmed_24h === false) { statusClass = "not-confirmed"; statusText = "не подтвердился"; }
+        return `<div class="history-item">
+            <span>${a.direction === 'up' ? '▲' : '▼'} ${a.signal_count} сигн. · ${new Date(a.created_at).toLocaleDateString('ru-RU')}</span>
+            <span class="${statusClass}">${statusText}</span>
+          </div>`;
+      }).join("");
+    } else {
+      historyEl.innerHTML = '<div class="empty-state">История пуста</div>';
+    }
+  }
+
+  async function loadPriceChart(symbol) {
+    try {
+      const resp = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=15m&limit=48`);
+      const klines = await resp.json();
+      const labels = klines.map(k => new Date(k[0]).toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'}));
+      const prices = klines.map(k => parseFloat(k[4]));
+      const ctx = document.getElementById("priceChart").getContext("2d");
+      if (priceChartInstance) priceChartInstance.destroy();
+      priceChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets: [{ data: prices, borderColor: prices[prices.length-1] >= prices[0] ? '#26c281' : '#e5484d', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, tension: 0.1 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+          scales: { x: { display: false }, y: { ticks: { color: '#8a8a92', font: { size: 10 } }, grid: { color: '#26262e' } } } }
+      });
+    } catch (e) { console.error("Ошибка загрузки графика:", e); }
+  }
+
+  (async function start() {
+    await initUser();
+    loadActiveSignals();
+    setInterval(loadActiveSignals, 30000);
+  })();
+</script>
+</body>
+</html>
