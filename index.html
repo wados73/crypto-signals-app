@@ -259,9 +259,38 @@
     }
   }
 
+  async function loadTopMovers() {
+    try {
+      const resp = await fetch(`${API_BASE}/api/coins/top-movers`);
+      const data = await resp.json();
+      const grid = document.getElementById("coinsGrid");
+      const gainersHtml = (data.gainers || []).map(c => `
+        <div class="card up" onclick="openCoinDetail('${c.symbol}')">
+          <div class="ticker-row"><div class="ticker-left">
+            <img class="coin-icon" src="${coinIconUrl(c.symbol)}" onerror="this.style.display='none'">
+            <span class="ticker">${c.symbol}</span></div></div>
+          <div class="price">$${c.price ?? '—'}</div>
+          <div class="signal-badge up">▲ ${c.price_change_24h_pct != null ? c.price_change_24h_pct.toFixed(1) + '%' : ''} за 24ч</div>
+        </div>`).join("");
+      const losersHtml = (data.losers || []).map(c => `
+        <div class="card down" onclick="openCoinDetail('${c.symbol}')">
+          <div class="ticker-row"><div class="ticker-left">
+            <img class="coin-icon" src="${coinIconUrl(c.symbol)}" onerror="this.style.display='none'">
+            <span class="ticker">${c.symbol}</span></div></div>
+          <div class="price">$${c.price ?? '—'}</div>
+          <div class="signal-badge down">▼ ${c.price_change_24h_pct != null ? c.price_change_24h_pct.toFixed(1) + '%' : ''} за 24ч</div>
+        </div>`).join("");
+      grid.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align:center; color: var(--text-dim); font-size:13px; padding: 10px 0;">Активных сигналов сейчас нет — топ движений за 24ч</div>
+        ${gainersHtml}${losersHtml}`;
+    } catch (e) {
+      document.getElementById("coinsGrid").innerHTML = '<div class="empty-state">Активных сигналов пока нет</div>';
+    }
+  }
+
   function renderCoins(coins) {
     const grid = document.getElementById("coinsGrid");
-    if (!coins || coins.length === 0) { grid.innerHTML = '<div class="empty-state">Активных сигналов пока нет</div>'; return; }
+    if (!coins || coins.length === 0) { loadTopMovers(); return; }
     const watchlist = (currentUser && currentUser.watchlist) || [];
     const sorted = [...coins].sort((a, b) => (watchlist.includes(b.symbol)?1:0) - (watchlist.includes(a.symbol)?1:0));
     grid.innerHTML = sorted.map(coin => `
