@@ -100,9 +100,6 @@
     <input class="search-bar" type="text" placeholder="Поиск монеты..." id="searchInput">
     <button class="icon-btn" onclick="openSettings()">⚙</button>
   </div>
-  <div class="section-title">Новости</div>
-  <div class="news-feed-scroll" id="newsFeedScroll"><div class="empty-state">Загрузка...</div></div>
-
   <div class="grid" id="coinsGrid">
     <div class="empty-state">Загрузка сигналов...</div>
   </div>
@@ -332,6 +329,7 @@
             <span class="ticker">${c.symbol}</span></div></div>
           <div class="price">$${c.price ?? '—'}</div>
           <div class="signal-badge up">▲ ${c.price_change_24h_pct != null ? c.price_change_24h_pct.toFixed(1) + '%' : ''} за 24ч</div>
+          <div class="card-news" id="card-news-${c.symbol}">···</div>
         </div>`).join("");
       const losersHtml = (data.losers || []).map(c => `
         <div class="card down" onclick="openCoinDetail('${c.symbol}')">
@@ -340,10 +338,12 @@
             <span class="ticker">${c.symbol}</span></div></div>
           <div class="price">$${c.price ?? '—'}</div>
           <div class="signal-badge down">▼ ${c.price_change_24h_pct != null ? c.price_change_24h_pct.toFixed(1) + '%' : ''} за 24ч</div>
+          <div class="card-news" id="card-news-${c.symbol}">···</div>
         </div>`).join("");
       grid.innerHTML = `
         <div style="grid-column: 1 / -1; text-align:center; color: var(--text-dim); font-size:13px; padding: 10px 0;">Активных сигналов сейчас нет — топ движений за 24ч</div>
         ${gainersHtml}${losersHtml}`;
+      attachCardNews([...(data.gainers||[]), ...(data.losers||[])].map(c => c.symbol));
     } catch (e) {
       document.getElementById("coinsGrid").innerHTML = '<div class="empty-state">Активных сигналов пока нет</div>';
     }
@@ -366,8 +366,30 @@
         <div class="price">${coin.price ? '$' + coin.price : '—'}</div>
         <div class="signal-badge ${coin.direction}">${coin.direction === 'up' ? '▲ ВВЕРХ' : '▼ ВНИЗ'} · ${coin.signal_count} сигн.</div>
         <div class="signal-time">${timeAgo(coin.triggered_at)}</div>
+        <div class="card-news" id="card-news-${coin.symbol}">···</div>
       </div>
     `).join("");
+    attachCardNews(sorted.map(c => c.symbol));
+  }
+
+  async function attachCardNews(symbols) {
+    for (const symbol of symbols) {
+      const el = document.getElementById(`card-news-${symbol}`);
+      if (!el) continue;
+      try {
+        const resp = await fetch(`${API_BASE}/api/coins/${symbol}/news`);
+        const data = await resp.json();
+        if (data.news && data.news.length > 0) {
+          const first = data.news[0];
+          el.innerHTML = `<a href="${first.url}" style="color:inherit;text-decoration:none" onclick="event.preventDefault(); event.stopPropagation(); tg.openLink('${first.url}');">${first.title}</a>`;
+        } else {
+          el.remove();
+        }
+      } catch (e) {
+        el.remove();
+      }
+      await new Promise(r => setTimeout(r, 250));
+    }
   }
 
   document.getElementById("searchInput").addEventListener("input", async (e) => {
@@ -596,9 +618,7 @@
   (async function start() {
     await initUser();
     loadActiveSignals();
-    loadGeneralNews();
     setInterval(loadActiveSignals, 30000);
-    setInterval(loadGeneralNews, 300000);
   })();
 </script>
 </body>
