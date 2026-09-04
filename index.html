@@ -68,6 +68,10 @@
   .history-item .not-confirmed { color: var(--red); }
   .history-item .pending { color: var(--text-dim); }
 
+  .market-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+  .market-stat { background: var(--card-bg); border-radius: 12px; padding: 10px 12px; }
+  .market-stat .label { color: var(--text-dim); font-size: 11px; margin-bottom: 2px; }
+  .market-stat .value { font-size: 15px; font-weight: 700; }
   .news-item { background: var(--card-bg); border-radius: 12px; padding: 12px; margin-bottom: 8px; font-size: 13px; text-decoration: none; display: block; color: var(--text); }
   .news-item .title { font-weight: 600; margin-bottom: 4px; }
   .news-item .meta { color: var(--text-dim); font-size: 11px; }
@@ -114,6 +118,9 @@
     </div>
 
     <div id="levelsSection"></div>
+
+    <div class="section-title">Рынок</div>
+    <div id="marketDataSection"></div>
 
     <div class="section-title">Новости</div>
     <div id="newsSection"><div class="empty-state">Загрузка...</div></div>
@@ -372,6 +379,7 @@
     await loadKlines(symbol);
     renderChart();
     loadNews(symbol);
+    loadMarketData(symbol);
 
     if (chartRefreshInterval) clearInterval(chartRefreshInterval);
     chartRefreshInterval = setInterval(async () => {
@@ -420,6 +428,36 @@
           return `<div class="history-item"><span>${a.direction === 'up' ? '▲' : '▼'} ${a.signal_count} сигн. · ${new Date(a.created_at).toLocaleDateString('ru-RU')}</span><span class="${statusClass}">${statusText}</span></div>`;
         }).join("")
       : '<div class="empty-state">История пуста</div>';
+  }
+
+  function formatBigNumber(num) {
+    if (num == null) return "—";
+    if (num >= 1e9) return (num / 1e9).toFixed(2) + "B";
+    if (num >= 1e6) return (num / 1e6).toFixed(2) + "M";
+    if (num >= 1e3) return (num / 1e3).toFixed(2) + "K";
+    return num.toFixed(2);
+  }
+
+  async function loadMarketData(symbol) {
+    try {
+      const resp = await fetch(`${API_BASE}/api/coins/${symbol}/market-data`);
+      const data = await resp.json();
+      const el = document.getElementById("marketDataSection");
+      if (!data.market_data) {
+        el.innerHTML = '<div class="empty-state">Данные недоступны</div>';
+        return;
+      }
+      const m = data.market_data;
+      el.innerHTML = `
+        <div class="market-grid">
+          <div class="market-stat"><div class="label">Ранг CMC</div><div class="value">${m.rank ?? '—'}</div></div>
+          <div class="market-stat"><div class="label">Изм. 1ч</div><div class="value">${m.percent_change_1h != null ? m.percent_change_1h.toFixed(2) + '%' : '—'}</div></div>
+          <div class="market-stat"><div class="label">Капитализация</div><div class="value">$${formatBigNumber(m.market_cap)}</div></div>
+          <div class="market-stat"><div class="label">Объём 24ч</div><div class="value">$${formatBigNumber(m.volume_24h)}</div></div>
+        </div>`;
+    } catch (e) {
+      document.getElementById("marketDataSection").innerHTML = '<div class="empty-state">Не удалось загрузить</div>';
+    }
   }
 
   async function loadNews(symbol) {
