@@ -24,11 +24,15 @@
   .card { background: var(--card-bg); border-radius: 14px; padding: 14px; position: relative; border-left: 3px solid var(--neutral); }
   .card.up { border-left-color: var(--green); }
   .card.down { border-left-color: var(--red); }
-  .card .ticker { font-weight: 700; font-size: 15px; display: flex; justify-content: space-between; }
+  .card .ticker-row { display: flex; align-items: center; gap: 6px; justify-content: space-between; }
+  .card .ticker-left { display: flex; align-items: center; gap: 6px; }
+  .card .coin-icon { width: 18px; height: 18px; border-radius: 50%; }
+  .card .ticker { font-weight: 700; font-size: 15px; }
   .card .price { color: var(--text-dim); font-size: 13px; margin-top: 2px; }
   .card .signal-badge { display: inline-block; margin-top: 8px; padding: 3px 8px; border-radius: 8px; font-size: 11px; font-weight: 600; }
   .signal-badge.up { background: rgba(38,194,129,0.15); color: var(--green); }
   .signal-badge.down { background: rgba(229,72,77,0.15); color: var(--red); }
+  .card .signal-time { color: var(--text-dim); font-size: 10px; margin-top: 4px; }
   .empty-state { text-align: center; color: var(--text-dim); padding: 40px 20px; font-size: 14px; }
   .star { cursor: pointer; }
   .star.active { color: #f5c518; }
@@ -37,7 +41,8 @@
   .screen.open { display: block; }
   .header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
   .back-btn { background: var(--card-bg); border: none; color: var(--text); padding: 8px 14px; border-radius: 10px; font-size: 16px; }
-  .detail-title { font-size: 20px; font-weight: 700; }
+  .detail-title { font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .detail-title img { width: 28px; height: 28px; border-radius: 50%; }
   .detail-price { color: var(--text-dim); font-size: 14px; }
 
   .chart-toggle { display: flex; gap: 6px; margin-bottom: 8px; }
@@ -89,7 +94,7 @@
     <div class="header">
       <button class="back-btn" onclick="closeScreen('detailScreen')">← Назад</button>
       <div style="flex:1">
-        <div class="detail-title" id="detailTicker">—</div>
+        <div class="detail-title"><img id="detailIcon" src="" onerror="this.style.display='none'"><span id="detailTicker">—</span></div>
         <div class="detail-price" id="detailPrice">—</div>
       </div>
       <span class="star" id="favStar" style="font-size:24px" onclick="toggleFavorite()">☆</span>
@@ -161,6 +166,21 @@
   const initData = tg.initDataUnsafe;
   const TELEGRAM_ID = (initData && initData.user) ? String(initData.user.id) : "test_user_local";
   const USERNAME = (initData && initData.user) ? (initData.user.username || "") : "wad_test";
+
+  function coinIconUrl(symbol) {
+    const ticker = symbol.replace("USDT", "").toLowerCase();
+    return `https://assets.coincap.io/assets/icons/${ticker}@2x.png`;
+  }
+
+  function timeAgo(isoString) {
+    const diffMs = Date.now() - new Date(isoString).getTime();
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return "только что";
+    if (mins < 60) return `${mins} мин назад`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours} ч назад`;
+    return `${Math.floor(hours / 24)} дн назад`;
+  }
 
   async function initUser() {
     const resp = await fetch(`${API_BASE}/api/users/register?telegram_id=${TELEGRAM_ID}&username=${USERNAME}`, { method: "POST" });
@@ -246,9 +266,16 @@
     const sorted = [...coins].sort((a, b) => (watchlist.includes(b.symbol)?1:0) - (watchlist.includes(a.symbol)?1:0));
     grid.innerHTML = sorted.map(coin => `
       <div class="card ${coin.direction}" onclick="openCoinDetail('${coin.symbol}')">
-        <div class="ticker"><span>${coin.symbol}</span>${watchlist.includes(coin.symbol) ? '<span style="color:#f5c518">★</span>' : ''}</div>
+        <div class="ticker-row">
+          <div class="ticker-left">
+            <img class="coin-icon" src="${coinIconUrl(coin.symbol)}" onerror="this.style.display='none'">
+            <span class="ticker">${coin.symbol}</span>
+          </div>
+          ${watchlist.includes(coin.symbol) ? '<span style="color:#f5c518">★</span>' : ''}
+        </div>
         <div class="price">${coin.price ? '$' + coin.price : '—'}</div>
         <div class="signal-badge ${coin.direction}">${coin.direction === 'up' ? '▲ ВВЕРХ' : '▼ ВНИЗ'} · ${coin.signal_count} сигн.</div>
+        <div class="signal-time">${timeAgo(coin.triggered_at)}</div>
       </div>
     `).join("");
   }
@@ -258,7 +285,7 @@
     if (query.length < 2) { loadActiveSignals(); return; }
     const resp = await fetch(`${API_BASE}/api/coins/search?query=${encodeURIComponent(query)}`);
     const data = await resp.json();
-    renderCoins(data.coins.map(c => ({...c, direction: 'neutral', signal_count: 0})));
+    renderCoins(data.coins.map(c => ({...c, direction: 'neutral', signal_count: 0, triggered_at: new Date().toISOString()})));
   });
 
   async function openCoinDetail(symbol) {
@@ -271,6 +298,8 @@
     document.getElementById("candleCanvas").style.display = "none";
     document.getElementById("detailScreen").classList.add("open");
     document.getElementById("detailTicker").textContent = symbol;
+    document.getElementById("detailIcon").src = coinIconUrl(symbol);
+    document.getElementById("detailIcon").style.display = "block";
     document.getElementById("detailPrice").textContent = "Загрузка...";
     document.getElementById("levelsSection").innerHTML = "";
     document.getElementById("recentSignals").innerHTML = '<div class="empty-state">Загрузка...</div>';
@@ -299,15 +328,19 @@
     document.getElementById("detailPrice").textContent =
       `$${coin.price ?? '—'}  (${coin.price_change_24h_pct != null ? coin.price_change_24h_pct.toFixed(2) + '%' : '—'} за 24ч)`;
 
-    const lastAlert = data.signal_history && data.signal_history[0];
-    if (lastAlert && lastAlert.take_profit) {
+    const live = data.live_signal;
+    if (live && live.take_profit) {
       document.getElementById("levelsSection").innerHTML = `
         <div class="levels-box">
-          <div class="row"><span class="label">Направление</span><span>${lastAlert.direction === 'up' ? '▲ ВВЕРХ' : '▼ ВНИЗ'}</span></div>
-          <div class="row"><span class="label">Вход</span><span>${lastAlert.price_at_trigger ?? '—'}</span></div>
-          <div class="row"><span class="label">Тейк-профит</span><span>${lastAlert.take_profit ?? '—'}</span></div>
-          <div class="row"><span class="label">Стоп-лосс</span><span>${lastAlert.stop_loss ?? '—'}</span></div>
+          <div class="row"><span class="label">Направление</span><span>${live.direction === 'up' ? '▲ ВВЕРХ' : '▼ ВНИЗ'}</span></div>
+          <div class="row"><span class="label">Сигналов</span><span>${live.signal_count}</span></div>
+          <div class="row"><span class="label">Вход</span><span>${live.price_at_trigger ?? '—'}</span></div>
+          <div class="row"><span class="label">Тейк-профит</span><span>${live.take_profit ?? '—'}</span></div>
+          <div class="row"><span class="label">Стоп-лосс</span><span>${live.stop_loss ?? '—'}</span></div>
+          <div class="row"><span class="label">Обновлено</span><span>${timeAgo(live.triggered_at)}</span></div>
         </div>`;
+    } else {
+      document.getElementById("levelsSection").innerHTML = '<div class="empty-state">Активного сигнала сейчас нет</div>';
     }
 
     const signalsEl = document.getElementById("recentSignals");
@@ -373,11 +406,7 @@
 
   function renderChart() {
     if (!lastKlines) return;
-    if (currentChartType === "line") {
-      renderLineChart();
-    } else {
-      renderCandlestickChart();
-    }
+    if (currentChartType === "line") { renderLineChart(); } else { renderCandlestickChart(); }
   }
 
   function renderLineChart() {
@@ -394,7 +423,6 @@
     });
   }
 
-  // Собственная отрисовка свечей на чистом canvas — без сторонних библиотек
   function renderCandlestickChart() {
     const canvas = document.getElementById("candleCanvas");
     const rect = canvas.parentElement.getBoundingClientRect();
@@ -405,10 +433,7 @@
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, rect.width, rect.height);
 
-    const candles = lastKlines.map(k => ({
-      open: parseFloat(k[1]), high: parseFloat(k[2]), low: parseFloat(k[3]), close: parseFloat(k[4])
-    }));
-
+    const candles = lastKlines.map(k => ({ open: parseFloat(k[1]), high: parseFloat(k[2]), low: parseFloat(k[3]), close: parseFloat(k[4]) }));
     const allValues = candles.flatMap(c => [c.high, c.low]);
     const maxV = Math.max(...allValues);
     const minV = Math.min(...allValues);
@@ -421,7 +446,6 @@
     const chartHeight = rect.height - 10;
     const candleSlot = chartWidth / candles.length;
     const candleWidth = Math.max(candleSlot * 0.6, 2);
-
     const yFor = (val) => 5 + chartHeight - ((val - bottom) / range) * chartHeight;
 
     candles.forEach((c, i) => {
@@ -429,13 +453,11 @@
       const isUp = c.close >= c.open;
       ctx.strokeStyle = isUp ? '#26c281' : '#e5484d';
       ctx.fillStyle = isUp ? '#26c281' : '#e5484d';
-
       ctx.beginPath();
       ctx.moveTo(xCenter, yFor(c.high));
       ctx.lineTo(xCenter, yFor(c.low));
       ctx.lineWidth = 1;
       ctx.stroke();
-
       const bodyTop = yFor(Math.max(c.open, c.close));
       const bodyBottom = yFor(Math.min(c.open, c.close));
       const bodyHeight = Math.max(bodyBottom - bodyTop, 1);
