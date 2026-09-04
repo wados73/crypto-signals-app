@@ -166,6 +166,7 @@
   let currentDetailSymbol = null;
   let currentChartType = "line";
   let lastKlines = null;
+  let chartRefreshInterval = null;
 
   const initData = tg.initDataUnsafe;
   const TELEGRAM_ID = (initData && initData.user) ? String(initData.user.id) : "test_user_local";
@@ -231,7 +232,10 @@
 
   function closeScreen(id) {
     document.getElementById(id).classList.remove("open");
-    if (id === "detailScreen" && priceChartInstance) { priceChartInstance.destroy(); priceChartInstance = null; }
+    if (id === "detailScreen") {
+      if (priceChartInstance) { priceChartInstance.destroy(); priceChartInstance = null; }
+      if (chartRefreshInterval) { clearInterval(chartRefreshInterval); chartRefreshInterval = null; }
+    }
   }
 
   function renderWatchlist() {
@@ -368,6 +372,13 @@
     await loadKlines(symbol);
     renderChart();
     loadNews(symbol);
+
+    if (chartRefreshInterval) clearInterval(chartRefreshInterval);
+    chartRefreshInterval = setInterval(async () => {
+      if (currentDetailSymbol !== symbol) return;
+      await loadKlines(symbol);
+      renderChart();
+    }, 30000);
   }
 
   function renderDetail(data) {
