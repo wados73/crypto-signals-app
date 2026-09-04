@@ -27,6 +27,10 @@
   .card .ticker-row { display: flex; align-items: center; gap: 6px; justify-content: space-between; }
   .card .ticker-left { display: flex; align-items: center; gap: 6px; }
   .card .coin-icon { width: 18px; height: 18px; border-radius: 50%; }
+  .coin-icon-fallback { width: 18px; height: 18px; border-radius: 50%; background: var(--neutral); color: var(--text); font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+  .coin-icon-fallback.big { width: 28px; height: 28px; font-size: 13px; }
+  .coin-icon-fallback { width: 18px; height: 18px; border-radius: 50%; background: var(--neutral); color: var(--text); font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+  .coin-icon-fallback.big { width: 28px; height: 28px; font-size: 13px; }
   .card .ticker { font-weight: 700; font-size: 15px; }
   .card .price { color: var(--text-dim); font-size: 13px; margin-top: 2px; }
   .card .signal-badge { display: inline-block; margin-top: 8px; padding: 3px 8px; border-radius: 8px; font-size: 11px; font-weight: 600; }
@@ -167,6 +171,20 @@
   const TELEGRAM_ID = (initData && initData.user) ? String(initData.user.id) : "test_user_local";
   const USERNAME = (initData && initData.user) ? (initData.user.username || "") : "wad_test";
 
+  function iconFallback(imgEl, ticker, big) {
+    const div = document.createElement("div");
+    div.className = "coin-icon-fallback" + (big ? " big" : "");
+    div.textContent = (ticker || "?").charAt(0).toUpperCase();
+    imgEl.replaceWith(div);
+  }
+
+  function iconFallback(imgEl, ticker, big) {
+    const div = document.createElement("div");
+    div.className = "coin-icon-fallback" + (big ? " big" : "");
+    div.textContent = (ticker || "?").charAt(0).toUpperCase();
+    imgEl.replaceWith(div);
+  }
+
   function coinIconUrl(symbol) {
     const ticker = symbol.replace("USDT", "").toLowerCase();
     return `https://assets.coincap.io/assets/icons/${ticker}@2x.png`;
@@ -267,7 +285,7 @@
       const gainersHtml = (data.gainers || []).map(c => `
         <div class="card up" onclick="openCoinDetail('${c.symbol}')">
           <div class="ticker-row"><div class="ticker-left">
-            <img class="coin-icon" src="${coinIconUrl(c.symbol)}" onerror="this.style.display='none'">
+            <img class="coin-icon" src="${coinIconUrl(c.symbol)}" onerror="iconFallback(this, '${c.symbol.replace('USDT','')}')">
             <span class="ticker">${c.symbol}</span></div></div>
           <div class="price">$${c.price ?? '—'}</div>
           <div class="signal-badge up">▲ ${c.price_change_24h_pct != null ? c.price_change_24h_pct.toFixed(1) + '%' : ''} за 24ч</div>
@@ -275,7 +293,7 @@
       const losersHtml = (data.losers || []).map(c => `
         <div class="card down" onclick="openCoinDetail('${c.symbol}')">
           <div class="ticker-row"><div class="ticker-left">
-            <img class="coin-icon" src="${coinIconUrl(c.symbol)}" onerror="this.style.display='none'">
+            <img class="coin-icon" src="${coinIconUrl(c.symbol)}" onerror="iconFallback(this, '${c.symbol.replace('USDT','')}')">
             <span class="ticker">${c.symbol}</span></div></div>
           <div class="price">$${c.price ?? '—'}</div>
           <div class="signal-badge down">▼ ${c.price_change_24h_pct != null ? c.price_change_24h_pct.toFixed(1) + '%' : ''} за 24ч</div>
@@ -297,7 +315,7 @@
       <div class="card ${coin.direction}" onclick="openCoinDetail('${coin.symbol}')">
         <div class="ticker-row">
           <div class="ticker-left">
-            <img class="coin-icon" src="${coinIconUrl(coin.symbol)}" onerror="this.style.display='none'">
+            <img class="coin-icon" src="${coinIconUrl(coin.symbol)}" onerror="iconFallback(this, '${coin.symbol.replace('USDT','')}')">
             <span class="ticker">${coin.symbol}</span>
           </div>
           ${watchlist.includes(coin.symbol) ? '<span style="color:#f5c518">★</span>' : ''}
