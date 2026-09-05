@@ -79,6 +79,8 @@
   .history-item .not-confirmed { color: var(--red); }
   .history-item .pending { color: var(--text-dim); }
 
+  .exchange-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .exchange-badge { background: var(--card-bg); border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 600; }
   .market-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
   .market-stat { background: var(--card-bg); border-radius: 12px; padding: 10px 12px; }
   .market-stat .label { color: var(--text-dim); font-size: 11px; margin-bottom: 2px; }
@@ -136,6 +138,9 @@
     </div>
 
     <div id="levelsSection"></div>
+
+    <div class="section-title">Торгуется на биржах</div>
+    <div id="exchangesSection" class="exchange-badges"></div>
 
     <div class="section-title">Рынок</div>
     <div id="marketDataSection"></div>
@@ -436,6 +441,7 @@
     renderChart();
     loadNews(symbol);
     loadMarketData(symbol);
+    loadExchanges(symbol);
 
     if (chartRefreshInterval) clearInterval(chartRefreshInterval);
     chartRefreshInterval = setInterval(async () => {
@@ -492,6 +498,21 @@
     if (num >= 1e6) return (num / 1e6).toFixed(2) + "M";
     if (num >= 1e3) return (num / 1e3).toFixed(2) + "K";
     return num.toFixed(2);
+  }
+
+  async function loadExchanges(symbol) {
+    try {
+      const resp = await fetch(`${API_BASE}/api/coins/${symbol}/exchanges`);
+      const data = await resp.json();
+      const el = document.getElementById("exchangesSection");
+      if (!data.exchanges || data.exchanges.length === 0) {
+        el.innerHTML = '<div class="empty-state">Не найдено</div>';
+        return;
+      }
+      el.innerHTML = data.exchanges.map(ex => `<span class="exchange-badge">${ex}</span>`).join("");
+    } catch (e) {
+      document.getElementById("exchangesSection").innerHTML = '<div class="empty-state">Не удалось загрузить</div>';
+    }
   }
 
   async function loadMarketData(symbol) {
