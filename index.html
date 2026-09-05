@@ -98,6 +98,12 @@
   .option-group { display: flex; gap: 8px; }
   .option-btn { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--neutral); background: transparent; color: var(--text); font-size: 13px; }
   .option-btn.selected { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .stats-row { background: var(--card-bg); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+  .stats-row .date { font-size: 13px; font-weight: 600; }
+  .stats-row .nums { font-size: 12px; color: var(--text-dim); text-align: right; }
+  .stats-row .accuracy { font-weight: 700; font-size: 14px; }
+  .stats-row .accuracy.good { color: var(--green); }
+  .stats-row .accuracy.bad { color: var(--red); }
   .watchlist-item { display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); padding: 10px 14px; border-radius: 12px; margin-bottom: 6px; }
   .remove-btn { background: transparent; border: none; color: var(--red); font-size: 18px; }
 </style>
@@ -105,6 +111,7 @@
 <body>
   <div class="top-bar">
     <input class="search-bar" type="text" placeholder="Поиск монеты..." id="searchInput">
+    <button class="icon-btn" onclick="openStats()">📊</button>
     <button class="icon-btn" onclick="openSettings()">⚙</button>
   </div>
   <div class="grid" id="coinsGrid">
@@ -152,6 +159,14 @@
     <div id="recentSignals"><div class="empty-state">Нет данных</div></div>
     <div class="section-title">История сигналов по монете</div>
     <div id="signalHistory"><div class="empty-state">Нет данных</div></div>
+  </div>
+
+  <div id="statsScreen" class="screen">
+    <div class="header">
+      <button class="back-btn" onclick="closeScreen('statsScreen')">← Назад</button>
+      <div class="detail-title">Статистика сигналов</div>
+    </div>
+    <div id="statsList"><div class="empty-state">Загрузка...</div></div>
   </div>
 
   <div id="settingsScreen" class="screen">
@@ -265,6 +280,38 @@
     currentUser = await resp.json();
     if (key === "theme") applyTheme(value);
     highlightSettings();
+  }
+
+  function openStats() {
+    document.getElementById("statsScreen").classList.add("open");
+    loadDailyStats();
+  }
+
+  async function loadDailyStats() {
+    try {
+      const resp = await fetch(`${API_BASE}/api/stats/daily?days=14`);
+      const data = await resp.json();
+      const el = document.getElementById("statsList");
+      if (!data.days || data.days.length === 0) {
+        el.innerHTML = '<div class="empty-state">Данных пока нет</div>';
+        return;
+      }
+      el.innerHTML = data.days.map(d => {
+        const dateFormatted = new Date(d.date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+        const accClass = d.accuracy_pct == null ? '' : (d.accuracy_pct >= 50 ? 'good' : 'bad');
+        const accText = d.accuracy_pct == null ? '—' : `${d.accuracy_pct}%`;
+        return `
+          <div class="stats-row">
+            <div>
+              <div class="date">${dateFormatted}</div>
+              <div class="nums">Сигналов: ${d.total} · Подтв.: ${d.confirmed} · Ожид.: ${d.pending}</div>
+            </div>
+            <div class="accuracy ${accClass}">${accText}</div>
+          </div>`;
+      }).join("");
+    } catch (e) {
+      document.getElementById("statsList").innerHTML = '<div class="empty-state">Не удалось загрузить</div>';
+    }
   }
 
   function openSettings() { document.getElementById("settingsScreen").classList.add("open"); renderWatchlist(); }
