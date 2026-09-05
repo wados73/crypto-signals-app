@@ -6,6 +6,8 @@
 <title>Crypto Signals</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 <style>
   :root {
     --bg: #0e0e12; --card-bg: #1a1a20; --text: #e8e8ea; --text-dim: #8a8a92;
@@ -192,6 +194,9 @@
   let chartRefreshInterval = null;
   let currentInterval = "15m";
   let currentLimit = 48;
+  let visibleCandleCount = null;
+  let pinchStartDist = null;
+  let pinchStartCount = null;
 
   const initData = tg.initDataUnsafe;
   const TELEGRAM_ID = (initData && initData.user) ? String(initData.user.id) : "test_user_local";
@@ -393,6 +398,7 @@
     currentChartType = "line";
     currentInterval = "15m";
     currentLimit = 48;
+    visibleCandleCount = null;
     document.querySelectorAll('#timeframeToggle button').forEach(b => b.classList.remove('selected'));
     document.querySelector('#timeframeToggle button[data-tf="15m"]').classList.add('selected');
     document.getElementById("chartTypeLine").classList.add("selected");
@@ -529,6 +535,7 @@
   async function setTimeframe(interval, limit, btnEl) {
     currentInterval = interval;
     currentLimit = limit;
+    visibleCandleCount = null;
     document.querySelectorAll('#timeframeToggle button').forEach(b => b.classList.remove('selected'));
     btnEl.classList.add('selected');
     await loadKlines(currentDetailSymbol);
@@ -568,7 +575,14 @@
     priceChartInstance = new Chart(ctx, {
       type: 'line',
       data: { labels, datasets: [{ data: prices, borderColor: prices[prices.length-1] >= prices[0] ? '#26c281' : '#e5484d', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, tension: 0.1 }] },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+      options: { responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          zoom: {
+            zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' },
+            pan: { enabled: true, mode: 'x' }
+          }
+        },
         scales: { x: { display: false }, y: { ticks: { color: '#8a8a92', font: { size: 10 } }, grid: { color: '#26262e' } } } }
     });
   }
@@ -583,7 +597,9 @@
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, rect.width, rect.height);
 
-    const candles = lastKlines.map(k => ({ open: parseFloat(k[1]), high: parseFloat(k[2]), low: parseFloat(k[3]), close: parseFloat(k[4]) }));
+    const fullCandles = lastKlines.map(k => ({ open: parseFloat(k[1]), high: parseFloat(k[2]), low: parseFloat(k[3]), close: parseFloat(k[4]) }));
+    const count = visibleCandleCount || fullCandles.length;
+    const candles = fullCandles.slice(-count);
     const allValues = candles.flatMap(c => [c.high, c.low]);
     const maxV = Math.max(...allValues);
     const minV = Math.min(...allValues);
@@ -615,9 +631,39 @@
     });
   }
 
+  function setupCandleZoom() {
+    const canvas = document.getElementById("candleCanvas");
+    canvas.addEventListener("touchstart", (e) => {
+      if (e.touches.length === 2) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        pinchStartDist = Math.sqrt(dx * dx + dy * dy);
+        pinchStartCount = visibleCandleCount || (lastKlines ? lastKlines.length : 48);
+      }
+    }, { passive: true });
+    canvas.addEventListener("touchmove", (e) => {
+      if (e.touches.length === 2 && pinchStartDist && lastKlines) {
+        e.preventDefault();
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const ratio = pinchStartDist / dist;
+        let newCount = Math.round(pinchStartCount * ratio);
+        newCount = Math.max(8, Math.min(lastKlines.length, newCount));
+        visibleCandleCount = newCount;
+        renderCandlestickChart();
+      }
+    }, { passive: false });
+    canvas.addEventListener("touchend", () => {
+      pinchStartDist = null;
+      pinchStartCount = null;
+    });
+  }
+
   (async function start() {
     await initUser();
     loadActiveSignals();
+    setupCandleZoom();
     setInterval(loadActiveSignals, 30000);
   })();
 </script>
