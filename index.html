@@ -595,7 +595,7 @@
     const chartWidth = rect.width - 10;
     const chartHeight = rect.height - 10;
     const candleSlot = chartWidth / candles.length;
-    const candleWidth = Math.max(candleSlot * 0.6, 2);
+    const candleWidth = Math.min(Math.max(candleSlot * 0.6, 2), 16);
     const yFor = (val) => 5 + chartHeight - ((val - bottom) / range) * chartHeight;
 
     candles.forEach((c, i) => {
