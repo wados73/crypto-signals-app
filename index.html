@@ -583,7 +583,10 @@
             pan: { enabled: true, mode: 'x' }
           }
         },
-        scales: { x: { display: false }, y: { ticks: { color: '#8a8a92', font: { size: 10 } }, grid: { color: '#26262e' } } } }
+        scales: {
+          x: { display: true, ticks: { color: '#8a8a92', font: { size: 9 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 6 }, grid: { display: false } },
+          y: { ticks: { color: '#8a8a92', font: { size: 10 } }, grid: { color: '#26262e' } }
+        } }
     });
   }
 
@@ -608,14 +611,46 @@
     const bottom = minV - padding;
     const range = top - bottom || 1;
 
-    const chartWidth = rect.width - 10;
-    const chartHeight = rect.height - 10;
+    const leftMargin = 55;
+    const bottomMargin = 18;
+    const chartWidth = rect.width - leftMargin - 5;
+    const chartHeight = rect.height - bottomMargin - 5;
     const candleSlot = chartWidth / candles.length;
     const candleWidth = Math.min(Math.max(candleSlot * 0.6, 2), 16);
     const yFor = (val) => 5 + chartHeight - ((val - bottom) / range) * chartHeight;
 
+    // Сетка цен (5 горизонтальных линий с подписями)
+    ctx.strokeStyle = '#26262e';
+    ctx.fillStyle = '#8a8a92';
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'right';
+    for (let i = 0; i <= 4; i++) {
+      const val = bottom + (range * i / 4);
+      const y = yFor(val);
+      ctx.beginPath();
+      ctx.moveTo(leftMargin, y);
+      ctx.lineTo(leftMargin + chartWidth, y);
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.fillText(val < 1 ? val.toFixed(6) : val.toFixed(2), leftMargin - 6, y + 3);
+    }
+
+    // Подписи времени (5 меток снизу)
+    ctx.textAlign = 'center';
+    const labelStep = Math.max(1, Math.floor(candles.length / 5));
+    for (let i = 0; i < candles.length; i += labelStep) {
+      const k = lastKlines[lastKlines.length - candles.length + i];
+      if (!k) continue;
+      const d = new Date(k[0]);
+      const label = currentInterval === '1d' || currentInterval === '1w'
+        ? d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })
+        : d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+      const xCenter = leftMargin + i * candleSlot + candleSlot / 2;
+      ctx.fillText(label, xCenter, rect.height - 4);
+    }
+
     candles.forEach((c, i) => {
-      const xCenter = 5 + i * candleSlot + candleSlot / 2;
+      const xCenter = leftMargin + i * candleSlot + candleSlot / 2;
       const isUp = c.close >= c.open;
       ctx.strokeStyle = isUp ? '#26c281' : '#e5484d';
       ctx.fillStyle = isUp ? '#26c281' : '#e5484d';
