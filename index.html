@@ -55,6 +55,9 @@
   .detail-title img { width: 28px; height: 28px; border-radius: 50%; }
   .detail-price { color: var(--text-dim); font-size: 14px; }
 
+  .timeframe-toggle { display: flex; gap: 6px; margin-bottom: 8px; overflow-x: auto; }
+  .timeframe-toggle button { padding: 6px 12px; border-radius: 8px; border: 1px solid var(--neutral); background: transparent; color: var(--text); font-size: 12px; white-space: nowrap; }
+  .timeframe-toggle button.selected { background: var(--accent); border-color: var(--accent); color: #fff; }
   .chart-toggle { display: flex; gap: 6px; margin-bottom: 8px; }
   .chart-toggle button { flex: 1; padding: 8px; border-radius: 10px; border: 1px solid var(--neutral); background: transparent; color: var(--text); font-size: 12px; }
   .chart-toggle button.selected { background: var(--accent); border-color: var(--accent); color: #fff; }
@@ -114,6 +117,13 @@
       <span class="star" id="favStar" style="font-size:24px" onclick="toggleFavorite()">☆</span>
     </div>
 
+    <div class="timeframe-toggle" id="timeframeToggle">
+      <button data-tf="15m" data-limit="48" class="selected" onclick="setTimeframe('15m', 48, this)">15м</button>
+      <button data-tf="1h" data-limit="48" onclick="setTimeframe('1h', 48, this)">1ч</button>
+      <button data-tf="4h" data-limit="42" onclick="setTimeframe('4h', 42, this)">4ч</button>
+      <button data-tf="1d" data-limit="30" onclick="setTimeframe('1d', 30, this)">1д</button>
+      <button data-tf="1w" data-limit="26" onclick="setTimeframe('1w', 26, this)">1нед</button>
+    </div>
     <div class="chart-toggle">
       <button id="chartTypeLine" class="selected" onclick="setChartType('line')">Линия</button>
       <button id="chartTypeCandle" onclick="setChartType('candlestick')">Свечи</button>
@@ -180,6 +190,8 @@
   let currentChartType = "line";
   let lastKlines = null;
   let chartRefreshInterval = null;
+  let currentInterval = "15m";
+  let currentLimit = 48;
 
   const initData = tg.initDataUnsafe;
   const TELEGRAM_ID = (initData && initData.user) ? String(initData.user.id) : "test_user_local";
@@ -379,6 +391,10 @@
     tg.HapticFeedback.impactOccurred("light");
     currentDetailSymbol = symbol;
     currentChartType = "line";
+    currentInterval = "15m";
+    currentLimit = 48;
+    document.querySelectorAll('#timeframeToggle button').forEach(b => b.classList.remove('selected'));
+    document.querySelector('#timeframeToggle button[data-tf="15m"]').classList.add('selected');
     document.getElementById("chartTypeLine").classList.add("selected");
     document.getElementById("chartTypeCandle").classList.remove("selected");
     document.getElementById("lineCanvas").style.display = "block";
@@ -510,6 +526,15 @@
     }
   }
 
+  async function setTimeframe(interval, limit, btnEl) {
+    currentInterval = interval;
+    currentLimit = limit;
+    document.querySelectorAll('#timeframeToggle button').forEach(b => b.classList.remove('selected'));
+    btnEl.classList.add('selected');
+    await loadKlines(currentDetailSymbol);
+    renderChart();
+  }
+
   function setChartType(type) {
     currentChartType = type;
     document.getElementById("chartTypeLine").classList.toggle("selected", type === "line");
@@ -521,7 +546,7 @@
 
   async function loadKlines(symbol) {
     try {
-      const resp = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=15m&limit=48`);
+      const resp = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${currentInterval}&limit=${currentLimit}`);
       lastKlines = await resp.json();
     } catch (e) {
       console.error("Ошибка загрузки данных графика:", e);
