@@ -238,6 +238,7 @@
       <button class="back-btn" onclick="closeScreen('arbitrageScreen')">← Назад</button>
       <div class="detail-title">💱 Арбитраж</div>
     </div>
+    <div id="paperStatsBox" style="display:none; margin:12px 16px; padding:12px 14px; border-radius:12px; background:rgba(255,255,255,0.05); font-size:13px;"></div>
     <div id="arbitrageList"><div class="empty-state">Загрузка...</div></div>
   </div>
 
@@ -403,6 +404,36 @@
   function openArbitrage() {
     document.getElementById("arbitrageScreen").classList.add("open");
     loadArbitrage();
+    loadPaperStats();
+  }
+
+  async function loadPaperStats() {
+    const box = document.getElementById("paperStatsBox");
+    try {
+      const resp = await fetch(`${API_BASE}/api/arbitrage/paper-stats`);
+      const d = await resp.json();
+      if (d.total_resolved === 0) {
+        box.style.display = "block";
+        box.innerHTML = `<div style="opacity:0.7;">📝 Paper-trading: пока ${d.pending_count} сделок в ожидании, статистика появится после первых результатов</div>`;
+        return;
+      }
+      const profitColor = d.avg_profit_pct >= 0 ? "#4ade80" : "#f87171";
+      box.style.display = "block";
+      box.innerHTML = `
+        <div style="font-weight:600; margin-bottom:6px;">📝 Paper-trading статистика</div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+          <span style="opacity:0.7;">Winrate</span><span>${d.win_rate_pct}% (${d.wins}/${d.total_resolved})</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+          <span style="opacity:0.7;">Средний профит</span><span style="color:${profitColor};">${d.avg_profit_pct}%</span>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span style="opacity:0.7;">В ожидании / неудачных</span><span>${d.pending_count} / ${d.failed_count}</span>
+        </div>
+      `;
+    } catch (e) {
+      box.style.display = "none";
+    }
   }
 
   async function loadArbitrage() {
