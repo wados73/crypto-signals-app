@@ -33,6 +33,7 @@
   .quick-nav-btn.whale { border-left-color: var(--accent); }
   .quick-nav-btn.new-listing { border-left-color: var(--green); }
   .quick-nav-btn .icon { font-size: 26px; display: block; margin-bottom: 6px; }
+  .quick-nav-btn .count { display: block; font-size: 11px; color: var(--text-dim); font-weight: 400; margin-top: 2px; }
   .feed-item { background: var(--card-bg); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; }
   .feed-item .top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
   .feed-item .symbol { font-weight: 700; font-size: 14px; }
@@ -133,8 +134,8 @@
     <button class="icon-btn" onclick="openSettings()">⚙</button>
   </div>
   <div class="quick-nav-row">
-    <button class="quick-nav-btn whale" onclick="openWhaleActivity()"><span class="icon">🐋</span>Киты</button>
-    <button class="quick-nav-btn new-listing" onclick="openNewListings()"><span class="icon">🆕</span>Новые монеты</button>
+    <button class="quick-nav-btn whale" onclick="openWhaleActivity()"><span class="icon">🐋</span>Киты<span class="count" id="whaleCount">···</span></button>
+    <button class="quick-nav-btn new-listing" onclick="openNewListings()"><span class="icon">🆕</span>Новые монеты<span class="count" id="newListingCount">···</span></button>
   </div>
 
   <div class="grid" id="coinsGrid">
@@ -961,11 +962,29 @@
     });
   }
 
+  async function loadNavCounts() {
+    try {
+      const [whaleResp, newResp] = await Promise.all([
+        fetch(`${API_BASE}/api/signals/whale-activity?limit=1`),
+        fetch(`${API_BASE}/api/coins/new-listings?limit=1`),
+      ]);
+      const whaleData = await whaleResp.json();
+      const newData = await newResp.json();
+      document.getElementById("whaleCount").textContent = `${whaleData.count_24h ?? 0} за 24ч`;
+      document.getElementById("newListingCount").textContent = `${newData.count_24h ?? 0} за 24ч`;
+    } catch (e) {
+      document.getElementById("whaleCount").textContent = "";
+      document.getElementById("newListingCount").textContent = "";
+    }
+  }
+
   (async function start() {
     await initUser();
     loadActiveSignals();
+    loadNavCounts();
     setupCandleZoom();
     setInterval(loadActiveSignals, 30000);
+    setInterval(loadNavCounts, 60000);
   })();
 </script>
 </body>
