@@ -311,12 +311,13 @@
     );
   }
 
-  function detectExchange(detailText) {
-    if (detailText.includes("Binance")) return { key: "binance", label: "Binance", domain: "binance.com" };
+  function detectExchange(source, detailText) {
+    if (source === "whale_wallet") {
+      return { key: "etherscan", label: "Ethereum (Etherscan)", domain: "etherscan.io" };
+    }
     if (detailText.includes("Bybit")) return { key: "bybit", label: "Bybit", domain: "bybit.com" };
     if (detailText.includes("OKX")) return { key: "okx", label: "OKX", domain: "okx.com" };
-    if (detailText.includes("etherscan.io")) return { key: "etherscan", label: "Etherscan", domain: "etherscan.io" };
-    return { key: "etherscan", label: "Сеть", domain: "etherscan.io" };
+    return { key: "binance", label: "Binance", domain: "binance.com" };
   }
 
   function openEventDetail(index) {
@@ -324,7 +325,7 @@
     if (!s) return;
     document.getElementById("eventDetailScreen").classList.add("open");
     const sourceLabel = s.source === "whale_trade" ? "Крупная сделка" : "Перевод кошелька";
-    const ex = detectExchange(s.detail);
+    const ex = detectExchange(s.source, s.detail);
     document.getElementById("eventDetailContent").innerHTML = `
       <div class="exchange-icon-badge">
         <img src="${coinIconUrl(s.symbol)}" style="width:32px;height:32px;border-radius:50%;" onerror="iconFallback(this, '${s.symbol.replace('USDT','')}', false)">
