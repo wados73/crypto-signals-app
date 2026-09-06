@@ -340,7 +340,7 @@
         <div class="row"><span class="label">Время</span><span>${new Date(s.created_at).toLocaleString('ru-RU')}</span></div>
       </div>
       <div class="news-item" style="cursor:default;">
-        <div class="title">${linkifyText(s.detail)}</div>
+        <div class="title" style="color: ${s.direction === 'up' ? 'var(--green)' : 'var(--red)'}; font-weight: 600;">${linkifyText(s.detail)}</div>
       </div>
     `;
   }
