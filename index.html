@@ -333,6 +333,7 @@
   function openEventDetail(index) {
     const s = _whaleSignalsCache[index];
     if (!s) return;
+    closeScreen('whaleScreen');
     document.getElementById("eventDetailScreen").classList.add("open");
     const sourceLabel = s.source === "whale_trade" ? "Крупная сделка" : "Перевод кошелька";
     const ex = detectExchange(s.source, s.detail);
@@ -430,6 +431,7 @@
   function openArbitrageDetail(index) {
     const e = _arbitrageCache[index];
     if (!e) return;
+    closeScreen('arbitrageScreen');
     document.getElementById("eventDetailScreen").classList.add("open");
     const lowEx = exchangeInfo(e.exchange_low);
     const highEx = exchangeInfo(e.exchange_high);
