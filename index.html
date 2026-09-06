@@ -123,6 +123,13 @@
   .stats-alert-item .outcome.confirmed { color: var(--green); }
   .stats-alert-item .outcome.failed { color: var(--red); }
   .stats-alert-item .outcome.pending { color: var(--text-dim); }
+  .exchange-icon-badge { display: flex; align-items: center; gap: 8px; background: var(--card-bg); border-radius: 12px; padding: 10px 14px; margin-bottom: 12px; }
+  .exchange-icon-badge .circle { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #fff; }
+  .exchange-icon-badge .circle.binance { background: #F0B90B; color: #1a1a1a; }
+  .exchange-icon-badge .circle.bybit { background: #F7A600; color: #1a1a1a; }
+  .exchange-icon-badge .circle.okx { background: #000; }
+  .exchange-icon-badge .circle.etherscan { background: #3C3C3D; }
+  .exchange-icon-badge .name { font-weight: 600; font-size: 14px; }
   .watchlist-item { display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); padding: 10px 14px; border-radius: 12px; margin-bottom: 6px; }
   .remove-btn { background: transparent; border: none; color: var(--red); font-size: 18px; }
 </style>
@@ -304,12 +311,28 @@
     );
   }
 
+  function detectExchange(detailText) {
+    if (detailText.includes("Binance")) return { key: "binance", label: "Binance" };
+    if (detailText.includes("Bybit")) return { key: "bybit", label: "Bybit" };
+    if (detailText.includes("OKX")) return { key: "okx", label: "OKX" };
+    if (detailText.includes("etherscan.io")) return { key: "etherscan", label: "Etherscan" };
+    return { key: "etherscan", label: "Сеть" };
+  }
+
   function openEventDetail(index) {
     const s = _whaleSignalsCache[index];
     if (!s) return;
     document.getElementById("eventDetailScreen").classList.add("open");
-    const sourceLabel = s.source === "whale_trade" ? "Крупная сделка (Binance)" : "Перевод кошелька (Etherscan)";
+    const sourceLabel = s.source === "whale_trade" ? "Крупная сделка" : "Перевод кошелька";
+    const ex = detectExchange(s.detail);
     document.getElementById("eventDetailContent").innerHTML = `
+      <div class="exchange-icon-badge">
+        <img src="${coinIconUrl(s.symbol)}" style="width:32px;height:32px;border-radius:50%;" onerror="iconFallback(this, '${s.symbol.replace('USDT','')}', false)">
+        <span class="name">${s.symbol}</span>
+        <span style="flex:1"></span>
+        <span class="circle ${ex.key}">${ex.label.charAt(0)}</span>
+        <span class="name">${ex.label}</span>
+      </div>
       <div class="levels-box">
         <div class="row"><span class="label">Монета</span><span>${s.symbol}</span></div>
         <div class="row"><span class="label">Направление</span><span>${s.direction === 'up' ? '▲ ВВЕРХ' : '▼ ВНИЗ'}</span></div>
@@ -319,7 +342,6 @@
       <div class="news-item" style="cursor:default;">
         <div class="title">${linkifyText(s.detail)}</div>
       </div>
-      <button class="option-btn" style="margin-top:12px;width:100%;" onclick="closeScreen('eventDetailScreen'); openCoinDetail('${s.symbol}');">Открыть карточку монеты →</button>
     `;
   }
 
