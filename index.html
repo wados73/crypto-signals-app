@@ -330,14 +330,12 @@
       <div class="exchange-icon-badge">
         <img src="${coinIconUrl(s.symbol)}" style="width:32px;height:32px;border-radius:50%;" onerror="iconFallback(this, '${s.symbol.replace('USDT','')}', false)">
         <span class="name">${s.symbol}</span>
-        <span style="flex:1"></span>
-        <img src="https://www.google.com/s2/favicons?sz=64&domain=${ex.domain}" style="width:32px;height:32px;border-radius:50%;" onerror="this.outerHTML='<span class=&quot;circle ${ex.key}&quot;>${ex.label.charAt(0)}</span>'">
-        <span class="name">${ex.label}</span>
       </div>
       <div class="levels-box">
         <div class="row"><span class="label">Монета</span><span>${s.symbol}</span></div>
         <div class="row"><span class="label">Направление</span><span>${s.direction === 'up' ? '▲ ВВЕРХ' : '▼ ВНИЗ'}</span></div>
         <div class="row"><span class="label">Тип</span><span>${sourceLabel}</span></div>
+        <div class="row"><span class="label">Биржа</span><span style="display:flex;align-items:center;gap:6px;"><img src="https://www.google.com/s2/favicons?sz=64&domain=${ex.domain}" style="width:16px;height:16px;border-radius:50%;" onerror="this.style.display='none'">${ex.label}</span></div>
         <div class="row"><span class="label">Время</span><span>${new Date(s.created_at).toLocaleString('ru-RU')}</span></div>
       </div>
       <div class="news-item" style="cursor:default;">
