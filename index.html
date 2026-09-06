@@ -28,6 +28,16 @@
   .news-feed-card .nf-content { padding: 8px 10px; }
   .news-feed-card .nf-title { font-size: 12px; font-weight: 600; line-height: 1.3; max-height: 2.6em; overflow: hidden; }
   .news-feed-card .nf-source { font-size: 10px; color: var(--text-dim); margin-top: 4px; }
+  .quick-nav-row { display: flex; gap: 10px; margin-bottom: 16px; }
+  .quick-nav-btn { flex: 1; background: var(--card-bg); border: none; border-radius: 14px; padding: 14px 10px; color: var(--text); font-size: 13px; font-weight: 600; text-align: center; }
+  .quick-nav-btn .icon { font-size: 22px; display: block; margin-bottom: 4px; }
+  .feed-item { background: var(--card-bg); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; }
+  .feed-item .top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .feed-item .symbol { font-weight: 700; font-size: 14px; }
+  .feed-item .time { font-size: 11px; color: var(--text-dim); }
+  .feed-item .detail { font-size: 12px; color: var(--text-dim); }
+  .feed-item .detail.up { color: var(--green); }
+  .feed-item .detail.down { color: var(--red); }
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .card { background: var(--card-bg); border-radius: 14px; padding: 14px; position: relative; border-left: 3px solid var(--neutral); }
   .card.up { border-left-color: var(--green); }
@@ -120,6 +130,11 @@
     <button class="icon-btn" onclick="openStats()">📊</button>
     <button class="icon-btn" onclick="openSettings()">⚙</button>
   </div>
+  <div class="quick-nav-row">
+    <button class="quick-nav-btn" onclick="openWhaleActivity()"><span class="icon">🐋</span>Киты</button>
+    <button class="quick-nav-btn" onclick="openNewListings()"><span class="icon">🆕</span>Новые монеты</button>
+  </div>
+
   <div class="grid" id="coinsGrid">
     <div class="empty-state">Загрузка сигналов...</div>
   </div>
@@ -173,6 +188,22 @@
       <div class="detail-title">Статистика сигналов</div>
     </div>
     <div id="statsList"><div class="empty-state">Загрузка...</div></div>
+  </div>
+
+  <div id="whaleScreen" class="screen">
+    <div class="header">
+      <button class="back-btn" onclick="closeScreen('whaleScreen')">← Назад</button>
+      <div class="detail-title">🐋 Активность китов</div>
+    </div>
+    <div id="whaleList"><div class="empty-state">Загрузка...</div></div>
+  </div>
+
+  <div id="newListingsScreen" class="screen">
+    <div class="header">
+      <button class="back-btn" onclick="closeScreen('newListingsScreen')">← Назад</button>
+      <div class="detail-title">🆕 Новые монеты</div>
+    </div>
+    <div id="newListingsList"><div class="empty-state">Загрузка...</div></div>
   </div>
 
   <div id="settingsScreen" class="screen">
@@ -286,6 +317,61 @@
     currentUser = await resp.json();
     if (key === "theme") applyTheme(value);
     highlightSettings();
+  }
+
+  function openWhaleActivity() {
+    document.getElementById("whaleScreen").classList.add("open");
+    loadWhaleActivity();
+  }
+
+  async function loadWhaleActivity() {
+    try {
+      const resp = await fetch(`${API_BASE}/api/signals/whale-activity?limit=30`);
+      const data = await resp.json();
+      const el = document.getElementById("whaleList");
+      if (!data.signals || data.signals.length === 0) {
+        el.innerHTML = '<div class="empty-state">Активности пока нет</div>';
+        return;
+      }
+      el.innerHTML = data.signals.map(s => `
+        <div class="feed-item" onclick="closeScreen('whaleScreen'); openCoinDetail('${s.symbol}');">
+          <div class="top-row">
+            <span class="symbol">${s.direction === 'up' ? '▲' : '▼'} ${s.symbol}</span>
+            <span class="time">${timeAgo(s.created_at)}</span>
+          </div>
+          <div class="detail ${s.direction}">${s.detail}</div>
+        </div>
+      `).join("");
+    } catch (e) {
+      document.getElementById("whaleList").innerHTML = '<div class="empty-state">Не удалось загрузить</div>';
+    }
+  }
+
+  function openNewListings() {
+    document.getElementById("newListingsScreen").classList.add("open");
+    loadNewListings();
+  }
+
+  async function loadNewListings() {
+    try {
+      const resp = await fetch(`${API_BASE}/api/coins/new-listings?limit=30`);
+      const data = await resp.json();
+      const el = document.getElementById("newListingsList");
+      if (!data.coins || data.coins.length === 0) {
+        el.innerHTML = '<div class="empty-state">Новых листингов пока не было</div>';
+        return;
+      }
+      el.innerHTML = data.coins.map(c => `
+        <div class="feed-item" onclick="closeScreen('newListingsScreen'); openCoinDetail('${c.symbol}');">
+          <div class="top-row">
+            <span class="symbol">${c.symbol}</span>
+            <span class="time">$${c.price ?? '—'}</span>
+          </div>
+        </div>
+      `).join("");
+    } catch (e) {
+      document.getElementById("newListingsList").innerHTML = '<div class="empty-state">Не удалось загрузить</div>';
+    }
   }
 
   function openStats() {
