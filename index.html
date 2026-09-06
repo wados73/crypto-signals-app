@@ -214,6 +214,14 @@
     <div id="newListingsList"><div class="empty-state">Загрузка...</div></div>
   </div>
 
+  <div id="eventDetailScreen" class="screen">
+    <div class="header">
+      <button class="back-btn" onclick="closeScreen('eventDetailScreen')">← Назад</button>
+      <div class="detail-title">Детали события</div>
+    </div>
+    <div id="eventDetailContent"></div>
+  </div>
+
   <div id="settingsScreen" class="screen">
     <div class="header">
       <button class="back-btn" onclick="closeScreen('settingsScreen')">← Назад</button>
@@ -290,6 +298,31 @@
     return `https://assets.coincap.io/assets/icons/${ticker}@2x.png`;
   }
 
+  function linkifyText(text) {
+    return text.replace(/(https?:\/\/[^\s]+)/g, (url) =>
+      `<a href="${url}" style="color:var(--accent);word-break:break-all;" onclick="event.preventDefault(); tg.openLink('${url}');">${url}</a>`
+    );
+  }
+
+  function openEventDetail(index) {
+    const s = _whaleSignalsCache[index];
+    if (!s) return;
+    document.getElementById("eventDetailScreen").classList.add("open");
+    const sourceLabel = s.source === "whale_trade" ? "Крупная сделка (Binance)" : "Перевод кошелька (Etherscan)";
+    document.getElementById("eventDetailContent").innerHTML = `
+      <div class="levels-box">
+        <div class="row"><span class="label">Монета</span><span>${s.symbol}</span></div>
+        <div class="row"><span class="label">Направление</span><span>${s.direction === 'up' ? '▲ ВВЕРХ' : '▼ ВНИЗ'}</span></div>
+        <div class="row"><span class="label">Тип</span><span>${sourceLabel}</span></div>
+        <div class="row"><span class="label">Время</span><span>${new Date(s.created_at).toLocaleString('ru-RU')}</span></div>
+      </div>
+      <div class="news-item" style="cursor:default;">
+        <div class="title">${linkifyText(s.detail)}</div>
+      </div>
+      <button class="option-btn" style="margin-top:12px;width:100%;" onclick="closeScreen('eventDetailScreen'); openCoinDetail('${s.symbol}');">Открыть карточку монеты →</button>
+    `;
+  }
+
   function timeAgo(isoString) {
     const diffMs = Date.now() - new Date(isoString).getTime();
     const mins = Math.floor(diffMs / 60000);
@@ -362,15 +395,18 @@
       el.innerHTML = '<div class="empty-state">Активности пока нет</div>';
       return;
     }
-    el.innerHTML = filtered.map(s => `
-      <div class="feed-item" onclick="closeScreen('whaleScreen'); openCoinDetail('${s.symbol}');">
+    el.innerHTML = filtered.map((s) => {
+      const idx = _whaleSignalsCache.indexOf(s);
+      return `
+      <div class="feed-item" onclick="openEventDetail(${idx})">
         <div class="top-row">
           <span class="symbol">${s.direction === 'up' ? '▲' : '▼'} ${s.symbol}</span>
           <span class="time">${timeAgo(s.created_at)}</span>
         </div>
         <div class="detail ${s.direction}">${s.detail}</div>
       </div>
-    `).join("");
+    `;
+    }).join("");
   }
 
   function openNewListings() {
