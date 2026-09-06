@@ -198,6 +198,11 @@
       <button class="back-btn" onclick="closeScreen('whaleScreen')">← Назад</button>
       <div class="detail-title">🐋 Активность китов</div>
     </div>
+    <div class="timeframe-toggle" id="whaleFilterToggle">
+      <button data-filter="all" class="selected" onclick="setWhaleFilter('all', this)">Все</button>
+      <button data-filter="whale_trade" onclick="setWhaleFilter('whale_trade', this)">Сделки</button>
+      <button data-filter="whale_wallet" onclick="setWhaleFilter('whale_wallet', this)">Кошельки</button>
+    </div>
     <div id="whaleList"><div class="empty-state">Загрузка...</div></div>
   </div>
 
@@ -327,27 +332,45 @@
     loadWhaleActivity();
   }
 
+  let _whaleSignalsCache = [];
+  let _whaleFilterActive = "all";
+
   async function loadWhaleActivity() {
     try {
-      const resp = await fetch(`${API_BASE}/api/signals/whale-activity?limit=30`);
+      const resp = await fetch(`${API_BASE}/api/signals/whale-activity?limit=50`);
       const data = await resp.json();
-      const el = document.getElementById("whaleList");
-      if (!data.signals || data.signals.length === 0) {
-        el.innerHTML = '<div class="empty-state">Активности пока нет</div>';
-        return;
-      }
-      el.innerHTML = data.signals.map(s => `
-        <div class="feed-item" onclick="closeScreen('whaleScreen'); openCoinDetail('${s.symbol}');">
-          <div class="top-row">
-            <span class="symbol">${s.direction === 'up' ? '▲' : '▼'} ${s.symbol}</span>
-            <span class="time">${timeAgo(s.created_at)}</span>
-          </div>
-          <div class="detail ${s.direction}">${s.detail}</div>
-        </div>
-      `).join("");
+      _whaleSignalsCache = data.signals || [];
+      renderWhaleFeed();
     } catch (e) {
       document.getElementById("whaleList").innerHTML = '<div class="empty-state">Не удалось загрузить</div>';
     }
+  }
+
+  function setWhaleFilter(filter, btnEl) {
+    _whaleFilterActive = filter;
+    document.querySelectorAll('#whaleFilterToggle button').forEach(b => b.classList.remove('selected'));
+    btnEl.classList.add('selected');
+    renderWhaleFeed();
+  }
+
+  function renderWhaleFeed() {
+    const el = document.getElementById("whaleList");
+    const filtered = _whaleFilterActive === "all"
+      ? _whaleSignalsCache
+      : _whaleSignalsCache.filter(s => s.source === _whaleFilterActive);
+    if (filtered.length === 0) {
+      el.innerHTML = '<div class="empty-state">Активности пока нет</div>';
+      return;
+    }
+    el.innerHTML = filtered.map(s => `
+      <div class="feed-item" onclick="closeScreen('whaleScreen'); openCoinDetail('${s.symbol}');">
+        <div class="top-row">
+          <span class="symbol">${s.direction === 'up' ? '▲' : '▼'} ${s.symbol}</span>
+          <span class="time">${timeAgo(s.created_at)}</span>
+        </div>
+        <div class="detail ${s.direction}">${s.detail}</div>
+      </div>
+    `).join("");
   }
 
   function openNewListings() {
