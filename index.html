@@ -32,6 +32,7 @@
   .quick-nav-btn { flex: 1; background: var(--card-bg); border: none; border-left: 3px solid var(--neutral); border-radius: 14px; padding: 18px 12px; color: var(--text); font-size: 13px; font-weight: 600; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
   .quick-nav-btn.whale { border-left-color: var(--accent); }
   .quick-nav-btn.new-listing { border-left-color: var(--green); }
+  .quick-nav-btn.arbitrage { border-left-color: #9b59b6; }
   .quick-nav-btn .icon { font-size: 26px; display: block; margin-bottom: 6px; }
   .quick-nav-btn .count { display: block; font-size: 11px; color: var(--text-dim); font-weight: 400; margin-top: 2px; }
   .feed-item { background: var(--card-bg); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; }
@@ -143,6 +144,7 @@
   <div class="quick-nav-row">
     <button class="quick-nav-btn whale" onclick="openWhaleActivity()"><span class="icon">🐋</span>Киты<span class="count" id="whaleCount">···</span></button>
     <button class="quick-nav-btn new-listing" onclick="openNewListings()"><span class="icon">🆕</span>Новые монеты<span class="count" id="newListingCount">···</span></button>
+    <button class="quick-nav-btn arbitrage" onclick="openArbitrage()"><span class="icon">💱</span>Арбитраж<span class="count" id="arbitrageCount">···</span></button>
   </div>
 
   <div class="grid" id="coinsGrid">
@@ -227,6 +229,14 @@
       <div class="detail-title">Детали события</div>
     </div>
     <div id="eventDetailContent"></div>
+  </div>
+
+  <div id="arbitrageScreen" class="screen">
+    <div class="header">
+      <button class="back-btn" onclick="closeScreen('arbitrageScreen')">← Назад</button>
+      <div class="detail-title">💱 Арбитраж</div>
+    </div>
+    <div id="arbitrageList"><div class="empty-state">Загрузка...</div></div>
   </div>
 
   <div id="settingsScreen" class="screen">
@@ -379,6 +389,63 @@
     currentUser = await resp.json();
     if (key === "theme") applyTheme(value);
     highlightSettings();
+  }
+
+  function exchangeInfo(name) {
+    const domains = { "Binance": "binance.com", "Bybit": "bybit.com", "OKX": "okx.com" };
+    return { label: name, domain: domains[name] || "binance.com" };
+  }
+
+  let _arbitrageCache = [];
+
+  function openArbitrage() {
+    document.getElementById("arbitrageScreen").classList.add("open");
+    loadArbitrage();
+  }
+
+  async function loadArbitrage() {
+    try {
+      const resp = await fetch(`${API_BASE}/api/arbitrage/events?limit=30`);
+      const data = await resp.json();
+      _arbitrageCache = data.events || [];
+      const el = document.getElementById("arbitrageList");
+      if (_arbitrageCache.length === 0) {
+        el.innerHTML = '<div class="empty-state">Разницы в ценах пока не найдено</div>';
+        return;
+      }
+      el.innerHTML = _arbitrageCache.map((e, idx) => `
+        <div class="feed-item" onclick="openArbitrageDetail(${idx})">
+          <div class="top-row">
+            <span class="symbol">${e.symbol} · ${e.diff_pct}%</span>
+            <span class="time">${timeAgo(e.created_at)}</span>
+          </div>
+          <div class="detail" style="color: var(--text-dim);">${e.exchange_low} $${e.price_low} → ${e.exchange_high} $${e.price_high}</div>
+        </div>
+      `).join("");
+    } catch (err) {
+      document.getElementById("arbitrageList").innerHTML = '<div class="empty-state">Не удалось загрузить</div>';
+    }
+  }
+
+  function openArbitrageDetail(index) {
+    const e = _arbitrageCache[index];
+    if (!e) return;
+    document.getElementById("eventDetailScreen").classList.add("open");
+    const lowEx = exchangeInfo(e.exchange_low);
+    const highEx = exchangeInfo(e.exchange_high);
+    document.getElementById("eventDetailContent").innerHTML = `
+      <div class="exchange-icon-badge">
+        <img src="${coinIconUrl(e.symbol)}" style="width:32px;height:32px;border-radius:50%;" onerror="iconFallback(this, '${e.symbol.replace('USDT','')}', false)">
+        <span class="name">${e.symbol}</span>
+      </div>
+      <div class="levels-box">
+        <div class="row"><span class="label">Монета</span><span>${e.symbol}</span></div>
+        <div class="row"><span class="label">Разница</span><span style="color:#9b59b6;font-weight:700;">${e.diff_pct}%</span></div>
+        <div class="row"><span class="label">Дешевле на</span><span style="display:flex;align-items:center;gap:6px;"><img src="https://www.google.com/s2/favicons?sz=64&domain=${lowEx.domain}" style="width:16px;height:16px;border-radius:50%;" onerror="this.style.display='none'">${lowEx.label}: $${e.price_low}</span></div>
+        <div class="row"><span class="label">Дороже на</span><span style="display:flex;align-items:center;gap:6px;"><img src="https://www.google.com/s2/favicons?sz=64&domain=${highEx.domain}" style="width:16px;height:16px;border-radius:50%;" onerror="this.style.display='none'">${highEx.label}: $${e.price_high}</span></div>
+        <div class="row"><span class="label">Время</span><span>${new Date(e.created_at).toLocaleString('ru-RU')}</span></div>
+      </div>
+    `;
   }
 
   function openWhaleActivity() {
@@ -1044,17 +1111,21 @@
 
   async function loadNavCounts() {
     try {
-      const [whaleResp, newResp] = await Promise.all([
+      const [whaleResp, newResp, arbResp] = await Promise.all([
         fetch(`${API_BASE}/api/signals/whale-activity?limit=1`),
         fetch(`${API_BASE}/api/coins/new-listings?limit=1`),
+        fetch(`${API_BASE}/api/arbitrage/events?limit=1`),
       ]);
       const whaleData = await whaleResp.json();
       const newData = await newResp.json();
+      const arbData = await arbResp.json();
       document.getElementById("whaleCount").textContent = `${whaleData.count_24h ?? 0} за 24ч`;
       document.getElementById("newListingCount").textContent = `${newData.count_24h ?? 0} за 24ч`;
+      document.getElementById("arbitrageCount").textContent = `${arbData.count_24h ?? 0} за 24ч`;
     } catch (e) {
       document.getElementById("whaleCount").textContent = "";
       document.getElementById("newListingCount").textContent = "";
+      document.getElementById("arbitrageCount").textContent = "";
     }
   }
 
