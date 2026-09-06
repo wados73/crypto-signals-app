@@ -429,7 +429,7 @@
 
   async function loadActiveSignals() {
     try {
-      const resp = await fetch(`${API_BASE}/api/coins/active-signals?limit=30&telegram_id=${TELEGRAM_ID}`);
+      const resp = await fetch(`${API_BASE}/api/coins/active-signals?limit=6&telegram_id=${TELEGRAM_ID}`);
       const data = await resp.json();
       renderCoins(data.coins);
     } catch (e) {
