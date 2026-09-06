@@ -312,11 +312,11 @@
   }
 
   function detectExchange(detailText) {
-    if (detailText.includes("Binance")) return { key: "binance", label: "Binance" };
-    if (detailText.includes("Bybit")) return { key: "bybit", label: "Bybit" };
-    if (detailText.includes("OKX")) return { key: "okx", label: "OKX" };
-    if (detailText.includes("etherscan.io")) return { key: "etherscan", label: "Etherscan" };
-    return { key: "etherscan", label: "Сеть" };
+    if (detailText.includes("Binance")) return { key: "binance", label: "Binance", domain: "binance.com" };
+    if (detailText.includes("Bybit")) return { key: "bybit", label: "Bybit", domain: "bybit.com" };
+    if (detailText.includes("OKX")) return { key: "okx", label: "OKX", domain: "okx.com" };
+    if (detailText.includes("etherscan.io")) return { key: "etherscan", label: "Etherscan", domain: "etherscan.io" };
+    return { key: "etherscan", label: "Сеть", domain: "etherscan.io" };
   }
 
   function openEventDetail(index) {
@@ -330,7 +330,7 @@
         <img src="${coinIconUrl(s.symbol)}" style="width:32px;height:32px;border-radius:50%;" onerror="iconFallback(this, '${s.symbol.replace('USDT','')}', false)">
         <span class="name">${s.symbol}</span>
         <span style="flex:1"></span>
-        <span class="circle ${ex.key}">${ex.label.charAt(0)}</span>
+        <img src="https://www.google.com/s2/favicons?sz=64&domain=${ex.domain}" style="width:32px;height:32px;border-radius:50%;" onerror="this.outerHTML='<span class=&quot;circle ${ex.key}&quot;>${ex.label.charAt(0)}</span>'">
         <span class="name">${ex.label}</span>
       </div>
       <div class="levels-box">
