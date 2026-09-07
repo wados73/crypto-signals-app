@@ -201,6 +201,7 @@
       <button class="back-btn" onclick="closeScreen('statsScreen')">← Назад</button>
       <div class="detail-title">Статистика сигналов</div>
     </div>
+    <div id="signalStatsSummary" style="display:none; margin:12px 16px; padding:12px 14px; border-radius:12px; background:rgba(255,255,255,0.05); font-size:13px;"></div>
     <div id="statsList"><div class="empty-state">Загрузка...</div></div>
   </div>
 
@@ -560,6 +561,38 @@
   function openStats() {
     document.getElementById("statsScreen").classList.add("open");
     loadDailyStats();
+    loadSignalStatsSummary();
+  }
+
+  async function loadSignalStatsSummary() {
+    const box = document.getElementById("signalStatsSummary");
+    try {
+      const resp = await fetch(`${API_BASE}/api/stats/summary`);
+      const d = await resp.json();
+      if (d.total_resolved === 0) {
+        box.style.display = "block";
+        box.innerHTML = `<div style="opacity:0.7;">📊 Пока ${d.pending_count} сигналов в ожидании, статистика появится после первых результатов</div>`;
+        return;
+      }
+      const wrColor = d.win_rate_pct >= 50 ? "#4ade80" : "#f87171";
+      const sourceRows = d.by_source.map(s => {
+        const c = s.win_rate_pct >= 50 ? "#4ade80" : "#f87171";
+        return `<div style="display:flex; justify-content:space-between; margin-bottom:2px; font-size:12px;">
+          <span style="opacity:0.65;">${s.source}</span><span style="color:${c};">${s.win_rate_pct}% (${s.wins}/${s.total})</span>
+        </div>`;
+      }).join("");
+      box.style.display = "block";
+      box.innerHTML = `
+        <div style="font-weight:600; margin-bottom:6px;">📊 Общая статистика сигналов</div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span style="opacity:0.7;">Winrate</span><span style="color:${wrColor};">${d.win_rate_pct}% (${d.wins}/${d.total_resolved})</span>
+        </div>
+        <div style="opacity:0.7; margin-bottom:4px;">По источникам:</div>
+        ${sourceRows}
+      `;
+    } catch (e) {
+      box.style.display = "none";
+    }
   }
 
   async function loadDailyStats() {
