@@ -169,6 +169,7 @@
       <div style="flex:1">
         <div class="detail-title"><img id="detailIcon" src="" onerror="this.style.display='none'"><span id="detailTicker">—</span></div>
         <div class="detail-price" id="detailPrice">—</div>
+        <div class="sector-badge" id="detailSectorBadge" style="display:none;"></div>
       </div>
       <span class="star" id="favStar" style="font-size:24px" onclick="toggleFavorite()">☆</span>
     </div>
@@ -879,8 +880,8 @@
     other: "Другое", unknown: "",
   };
 
-  async function loadSectorBadge(symbol) {
-    const el = document.getElementById(`sector-${symbol}`);
+  async function loadSectorBadgeById(symbol, elId) {
+    const el = document.getElementById(elId);
     if (!el) return;
     try {
       const resp = await fetch(`${API_BASE}/api/coins/${symbol}/sector`);
@@ -890,6 +891,10 @@
       el.className = `sector-badge ${data.sector}`;
       el.style.display = "inline-block";
     } catch (e) {}
+  }
+
+  function loadSectorBadge(symbol) {
+    return loadSectorBadgeById(symbol, `sector-${symbol}`);
   }
 
   async function loadSparkline(symbol, direction) {
@@ -937,6 +942,8 @@
     document.getElementById("candleCanvas").style.display = "none";
     document.getElementById("detailScreen").classList.add("open");
     document.getElementById("detailTicker").textContent = symbol;
+    document.getElementById("detailSectorBadge").style.display = "none";
+    loadSectorBadgeById(symbol, "detailSectorBadge");
     document.getElementById("detailIcon").src = coinIconUrl(symbol);
     document.getElementById("detailIcon").style.display = "block";
     document.getElementById("detailPrice").textContent = "Загрузка...";
