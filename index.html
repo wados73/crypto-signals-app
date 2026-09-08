@@ -882,25 +882,14 @@
   async function loadSectorBadge(symbol) {
     const el = document.getElementById(`sector-${symbol}`);
     if (!el) return;
-    el.textContent = "loading...";
-    el.style.display = "inline-block";
-    el.style.background = "rgba(255,255,0,0.3)";
-    el.style.color = "#000";
     try {
       const resp = await fetch(`${API_BASE}/api/coins/${symbol}/sector`);
       const data = await resp.json();
-      if (!data.sector || data.sector === "unknown") {
-        el.textContent = "no-sector:" + JSON.stringify(data);
-        return;
-      }
+      if (!data.sector || data.sector === "unknown") return;
       el.textContent = SECTOR_LABELS[data.sector] || data.sector;
       el.className = `sector-badge ${data.sector}`;
       el.style.display = "inline-block";
-      el.style.background = "";
-      el.style.color = "";
-    } catch (e) {
-      el.textContent = "ERR: " + e.message;
-    }
+    } catch (e) {}
   }
 
   async function loadSparkline(symbol, direction) {
