@@ -401,7 +401,8 @@
 
   function exchangeInfo(name) {
     const domains = { "Binance": "binance.com", "Bybit": "bybit.com", "OKX": "okx.com" };
-    return { label: name, domain: domains[name] || "binance.com" };
+    const domain = domains[name] || "binance.com";
+    return { label: name, domain: domain, iconUrl: `https://www.google.com/s2/favicons?domain=${domain}&sz=64` };
   }
 
   let _arbitrageCache = [];
@@ -471,7 +472,11 @@
             <span class="symbol">${e.symbol} · ${e.diff_pct}%</span>
             <span class="time">${timeAgo(e.created_at)}</span>
           </div>
-          <div class="detail" style="color: var(--text-dim);">${e.exchange_low} $${e.price_low} → ${e.exchange_high} $${e.price_high}</div>
+          <div class="detail" style="color: var(--text-dim); display:flex; align-items:center; gap:5px;">
+            <img src="https://www.google.com/s2/favicons?sz=64&domain=${exchangeInfo(e.exchange_low).domain}" style="width:14px;height:14px;border-radius:50%;" onerror="this.style.display='none'">${e.exchange_low} $${e.price_low}
+            →
+            <img src="https://www.google.com/s2/favicons?sz=64&domain=${exchangeInfo(e.exchange_high).domain}" style="width:14px;height:14px;border-radius:50%;" onerror="this.style.display='none'">${e.exchange_high} $${e.price_high}
+          </div>
         </div>
       `).join("");
     } catch (err) {
@@ -923,7 +928,10 @@
         el.innerHTML = '<div class="empty-state">Не найдено</div>';
         return;
       }
-      el.innerHTML = data.exchanges.map(ex => `<span class="exchange-badge">${ex}</span>`).join("");
+      el.innerHTML = data.exchanges.map(ex => {
+        const info = exchangeInfo(ex);
+        return `<span class="exchange-badge"><img src="${info.iconUrl}" style="width:16px;height:16px;border-radius:50%;vertical-align:middle;margin-right:5px;" onerror="this.style.display='none'">${ex}</span>`;
+      }).join("");
     } catch (e) {
       document.getElementById("exchangesSection").innerHTML = '<div class="empty-state">Не удалось загрузить</div>';
     }
