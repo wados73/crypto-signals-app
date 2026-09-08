@@ -21,8 +21,8 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 16px; }
   .top-bar { display: flex; gap: 8px; margin-bottom: 16px; }
-  .search-bar { flex: 1; padding: 12px 16px; border-radius: 12px; border: none; background: var(--card-bg); color: var(--text); font-size: 15px; }
-  .icon-btn { background: var(--card-bg); border: none; color: var(--text); border-radius: 12px; padding: 0 14px; font-size: 18px; }
+  .search-bar { flex: 1; padding: 12px 16px; border-radius: 18px; border: none; background: var(--card-bg); color: var(--text); font-size: 15px; }
+  .icon-btn { background: var(--card-bg); border: none; color: var(--text); border-radius: 18px; padding: 0 14px; font-size: 18px; }
   .news-feed-scroll { display: flex; overflow-x: auto; gap: 10px; padding-bottom: 6px; margin-bottom: 16px; -webkit-overflow-scrolling: touch; }
   .news-feed-card { flex: 0 0 220px; background: var(--card-bg); border-radius: 12px; overflow: hidden; text-decoration: none; color: var(--text); }
   .news-feed-card img { width: 100%; height: 100px; object-fit: cover; display: block; background: var(--neutral); }
@@ -31,7 +31,7 @@
   .news-feed-card .nf-source { font-size: 10px; color: var(--text-dim); margin-top: 4px; }
   .quick-nav-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 22px; }
   .quick-nav-btn.top-movers .icon-badge { background: rgba(126,119,221,0.15); color: #7F77DD; }
-  .quick-nav-btn { flex: 1; background: var(--card-bg); border: none; border-radius: 16px; padding: 24px 14px; color: var(--text); font-size: 13px; font-weight: 600; text-align: center; }
+  .quick-nav-btn { flex: 1; background: var(--card-bg); border: none; border-radius: 22px; padding: 24px 14px; color: var(--text); font-size: 13px; font-weight: 600; text-align: center; }
   .quick-nav-btn .icon-badge { width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; font-size: 24px; }
   .quick-nav-btn.whale .icon-badge { background: rgba(55,138,221,0.15); color: #378ADD; }
   .quick-nav-btn.new-listing .icon-badge { background: rgba(29,158,117,0.15); color: #1D9E75; }
@@ -45,7 +45,7 @@
   .feed-item .detail.up { color: var(--green); }
   .feed-item .detail.down { color: var(--red); }
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .card { background: var(--card-bg); border-radius: 16px; padding: 16px; position: relative; }
+  .card { background: var(--card-bg); border-radius: 22px; padding: 16px; position: relative; }
   .card .ticker-row { display: flex; align-items: center; gap: 6px; justify-content: space-between; margin-bottom: 10px; }
   .card .ticker-left { display: flex; align-items: center; gap: 8px; }
   .card .coin-icon { width: 26px; height: 26px; border-radius: 50%; }
@@ -57,6 +57,8 @@
   .signal-badge.up { background: rgba(38,194,129,0.15); color: var(--green); }
   .signal-badge.down { background: rgba(229,72,77,0.15); color: var(--red); }
   .card .signal-time { color: var(--text-dim); font-size: 11px; margin-top: 10px; }
+  .card .sparkline { width: 100%; height: 36px; margin: 6px 0; }
+  .square-icon-badge { width: 36px; height: 36px; border-radius: 10px; background: rgba(255,255,255,0.06); display: inline-flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
   .empty-state { text-align: center; color: var(--text-dim); padding: 40px 20px; font-size: 14px; }
   .star { cursor: pointer; }
   .star.active { color: #f5c518; }
@@ -852,10 +854,33 @@
           ${watchlist.includes(coin.symbol) ? '<span style="color:#f5c518">★</span>' : ''}
         </div>
         <div class="price">${coin.price ? '$' + coin.price : '—'}</div>
+        <div class="sparkline" id="spark-${coin.symbol}"></div>
         <div class="signal-badge ${coin.direction}"><i class="ti ti-arrow-${coin.direction === 'up' ? 'up' : 'down'}"></i>${coin.direction === 'up' ? 'ВВЕРХ' : 'ВНИЗ'} · ${coin.signal_count} сигн.</div>
         <div class="signal-time">${timeAgo(coin.triggered_at)}</div>
       </div>
     `).join("");
+    sorted.forEach(coin => loadSparkline(coin.symbol, coin.direction));
+  }
+
+  async function loadSparkline(symbol, direction) {
+    try {
+      const resp = await fetch(`${API_BASE}/api/coins/${symbol}/sparkline`);
+      const data = await resp.json();
+      const prices = data.prices || [];
+      const el = document.getElementById(`spark-${symbol}`);
+      if (!el || prices.length < 2) return;
+      const min = Math.min(...prices);
+      const max = Math.max(...prices);
+      const range = max - min || 1;
+      const w = 100, h = 36;
+      const points = prices.map((p, i) => {
+        const x = (i / (prices.length - 1)) * w;
+        const y = h - ((p - min) / range) * h;
+        return `${x},${y}`;
+      }).join(" ");
+      const color = direction === 'up' ? '#26c281' : '#e5484d';
+      el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="width:100%;height:100%;"><polyline points="${points}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    } catch (e) {}
   }
 
   document.getElementById("searchInput").addEventListener("input", async (e) => {
