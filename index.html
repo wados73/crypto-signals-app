@@ -402,7 +402,7 @@
   function exchangeInfo(name) {
     const domains = { "Binance": "binance.com", "Bybit": "bybit.com", "OKX": "okx.com" };
     const domain = domains[name] || "binance.com";
-    return { label: name, domain: domain, iconUrl: `https://www.google.com/s2/favicons?domain=${domain}&sz=64` };
+    return { label: name, domain: domain, iconUrl: `https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://${domain}&size=64` };
   }
 
   let _arbitrageCache = [];
@@ -473,9 +473,9 @@
             <span class="time">${timeAgo(e.created_at)}</span>
           </div>
           <div class="detail" style="color: var(--text-dim); display:flex; align-items:center; gap:5px;">
-            <img src="https://www.google.com/s2/favicons?sz=64&domain=${exchangeInfo(e.exchange_low).domain}" style="width:14px;height:14px;border-radius:50%;" onerror="this.style.display='none'">${e.exchange_low} $${e.price_low}
+            <img src="https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://${exchangeInfo(e.exchange_low).domain}&size=64" style="width:14px;height:14px;border-radius:50%;" onerror="this.style.display='none'">${e.exchange_low} $${e.price_low}
             →
-            <img src="https://www.google.com/s2/favicons?sz=64&domain=${exchangeInfo(e.exchange_high).domain}" style="width:14px;height:14px;border-radius:50%;" onerror="this.style.display='none'">${e.exchange_high} $${e.price_high}
+            <img src="https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://${exchangeInfo(e.exchange_high).domain}&size=64" style="width:14px;height:14px;border-radius:50%;" onerror="this.style.display='none'">${e.exchange_high} $${e.price_high}
           </div>
         </div>
       `).join("");
@@ -498,8 +498,8 @@
       <div class="levels-box">
         <div class="row"><span class="label">Монета</span><span>${e.symbol}</span></div>
         <div class="row"><span class="label">Разница</span><span style="color:#9b59b6;font-weight:700;">${e.diff_pct}%</span></div>
-        <div class="row"><span class="label">Дешевле на</span><span style="display:flex;align-items:center;gap:6px;"><img src="https://www.google.com/s2/favicons?sz=64&domain=${lowEx.domain}" style="width:16px;height:16px;border-radius:50%;" onerror="this.style.display='none'">${lowEx.label}: $${e.price_low}</span></div>
-        <div class="row"><span class="label">Дороже на</span><span style="display:flex;align-items:center;gap:6px;"><img src="https://www.google.com/s2/favicons?sz=64&domain=${highEx.domain}" style="width:16px;height:16px;border-radius:50%;" onerror="this.style.display='none'">${highEx.label}: $${e.price_high}</span></div>
+        <div class="row"><span class="label">Дешевле на</span><span style="display:flex;align-items:center;gap:6px;"><img src="https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://${lowEx.domain}&size=64" style="width:16px;height:16px;border-radius:50%;" onerror="this.style.display='none'">${lowEx.label}: $${e.price_low}</span></div>
+        <div class="row"><span class="label">Дороже на</span><span style="display:flex;align-items:center;gap:6px;"><img src="https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://${highEx.domain}&size=64" style="width:16px;height:16px;border-radius:50%;" onerror="this.style.display='none'">${highEx.label}: $${e.price_high}</span></div>
         <div class="row"><span class="label">Время</span><span>${new Date(e.created_at).toLocaleString('ru-RU')}</span></div>
       </div>
     `;
