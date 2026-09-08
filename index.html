@@ -400,7 +400,13 @@
   }
 
   function exchangeInfo(name) {
-    const domains = { "Binance": "binance.com", "Bybit": "bybit.com", "OKX": "okx.com" };
+    const domains = {
+      "Binance": "binance.com", "Bybit": "bybit.com", "OKX": "okx.com",
+      "Gate.io": "gate.io", "Bitget": "bitget.com", "KuCoin": "kucoin.com",
+      "HTX": "htx.com", "MEXC": "mexc.com", "Kraken": "kraken.com",
+      "Coinbase": "coinbase.com", "Huobi": "htx.com", "Crypto.com": "crypto.com",
+      "Bithumb": "bithumb.com", "Upbit": "upbit.com",
+    };
     const domain = domains[name] || "binance.com";
     return { label: name, domain: domain, iconUrl: `https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://${domain}&size=64` };
   }
