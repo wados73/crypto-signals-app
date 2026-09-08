@@ -418,6 +418,14 @@
     highlightSettings();
   }
 
+  function formatPrice(price) {
+    const num = parseFloat(price);
+    if (isNaN(num)) return price;
+    if (num === 0) return "0";
+    if (Math.abs(num) >= 1) return num.toFixed(4).replace(/\.?0+$/, "");
+    return parseFloat(num.toPrecision(6)).toString();
+  }
+
   function exchangeInfo(name) {
     const domains = {
       "Binance": "binance.com", "Bybit": "bybit.com", "OKX": "okx.com",
@@ -532,10 +540,11 @@
             <span class="symbol">${e.symbol} · ${e.diff_pct}%</span>
             <span class="time">${timeAgo(e.created_at)}</span>
           </div>
-          <div class="detail" style="color: var(--text-dim); display:flex; align-items:center; gap:5px;">
-            <img src="https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://${exchangeInfo(e.exchange_low).domain}&size=64" style="width:14px;height:14px;border-radius:50%;" onerror="this.style.display='none'">${e.exchange_low} $${e.price_low}
-            →
-            <img src="https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://${exchangeInfo(e.exchange_high).domain}&size=64" style="width:14px;height:14px;border-radius:50%;" onerror="this.style.display='none'">${e.exchange_high} $${e.price_high}
+          <div class="detail" style="color: var(--text-dim); display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+            <img src="https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://${exchangeInfo(e.exchange_low).domain}&size=64" style="width:14px;height:14px;border-radius:50%;" onerror="this.style.display='none'">${e.exchange_low} $${formatPrice(e.price_low)}
+          </div>
+          <div class="detail" style="color: var(--text-dim); display:flex; align-items:center; gap:6px;">
+            <img src="https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://${exchangeInfo(e.exchange_high).domain}&size=64" style="width:14px;height:14px;border-radius:50%;" onerror="this.style.display='none'">${e.exchange_high} $${formatPrice(e.price_high)}
           </div>
           <div class="sector-badge" id="sector-arb-${idx}" style="display:none;"></div>
         </div>
