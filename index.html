@@ -463,11 +463,13 @@
             <span style="color:${c.price_change_24h_pct >= 0 ? '#4ade80' : '#f87171'}; font-weight:600;">${c.price_change_24h_pct >= 0 ? '+' : ''}${c.price_change_24h_pct.toFixed(2)}%</span>
           </div>
           <div class="detail" style="color: var(--text-dim);">$${c.price}</div>
+          <div class="sector-badge" id="sector-topmover-${c.symbol}" style="display:none;"></div>
         </div>`;
       el.innerHTML = `
         ${gainers.length ? '<div style="padding:8px 4px; font-size:13px; color:var(--text-dim); font-weight:600;">Растут</div>' + gainers.map(renderRow).join("") : ""}
         ${losers.length ? '<div style="padding:8px 4px; font-size:13px; color:var(--text-dim); font-weight:600;">Падают</div>' + losers.map(renderRow).join("") : ""}
       `;
+      [...gainers, ...losers].forEach(c => loadSectorBadgeById(c.symbol, `sector-topmover-${c.symbol}`));
     } catch (e) {
       document.getElementById("topMoversList").innerHTML = '<div class="empty-state">Не удалось загрузить</div>';
     }
@@ -535,8 +537,10 @@
             →
             <img src="https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://${exchangeInfo(e.exchange_high).domain}&size=64" style="width:14px;height:14px;border-radius:50%;" onerror="this.style.display='none'">${e.exchange_high} $${e.price_high}
           </div>
+          <div class="sector-badge" id="sector-arb-${idx}" style="display:none;"></div>
         </div>
       `).join("");
+      _arbitrageCache.forEach((e, idx) => loadSectorBadgeById(e.symbol, `sector-arb-${idx}`));
     } catch (err) {
       document.getElementById("arbitrageList").innerHTML = '<div class="empty-state">Не удалось загрузить</div>';
     }
@@ -607,9 +611,14 @@
           <span class="time">${timeAgo(s.created_at)}</span>
         </div>
         <div class="detail ${s.direction}">${s.detail}</div>
+        <div class="sector-badge" id="sector-whale-${idx}" style="display:none;"></div>
       </div>
     `;
     }).join("");
+    filtered.forEach((s) => {
+      const idx = _whaleSignalsCache.indexOf(s);
+      loadSectorBadgeById(s.symbol, `sector-whale-${idx}`);
+    });
   }
 
   function openNewListings() {
@@ -632,8 +641,10 @@
             <span class="symbol">${c.symbol}</span>
             <span class="time">$${c.price ?? '—'}</span>
           </div>
+          <div class="sector-badge" id="sector-newlist-${c.symbol}" style="display:none;"></div>
         </div>
       `).join("");
+      data.coins.forEach(c => loadSectorBadgeById(c.symbol, `sector-newlist-${c.symbol}`));
     } catch (e) {
       document.getElementById("newListingsList").innerHTML = '<div class="empty-state">Не удалось загрузить</div>';
     }
