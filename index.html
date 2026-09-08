@@ -29,7 +29,8 @@
   .news-feed-card .nf-content { padding: 8px 10px; }
   .news-feed-card .nf-title { font-size: 12px; font-weight: 600; line-height: 1.3; max-height: 2.6em; overflow: hidden; }
   .news-feed-card .nf-source { font-size: 10px; color: var(--text-dim); margin-top: 4px; }
-  .quick-nav-row { display: flex; gap: 10px; margin-bottom: 16px; }
+  .quick-nav-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+  .quick-nav-btn.top-movers .icon-badge { background: rgba(126,119,221,0.15); color: #7F77DD; }
   .quick-nav-btn { flex: 1; background: var(--card-bg); border: none; border-radius: 14px; padding: 16px 10px; color: var(--text); font-size: 12px; font-weight: 600; text-align: center; }
   .quick-nav-btn .icon-badge { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; font-size: 20px; }
   .quick-nav-btn.whale .icon-badge { background: rgba(55,138,221,0.15); color: #378ADD; }
@@ -141,13 +142,14 @@
 <body>
   <div class="top-bar">
     <input class="search-bar" type="text" placeholder="Поиск монеты..." id="searchInput">
-    <button class="icon-btn" onclick="openStats()">📊</button>
-    <button class="icon-btn" onclick="openSettings()">⚙</button>
+    <button class="icon-btn" onclick="openStats()"><i class="ti ti-chart-bar"></i></button>
+    <button class="icon-btn" onclick="openSettings()"><i class="ti ti-settings"></i></button>
   </div>
   <div class="quick-nav-row">
     <button class="quick-nav-btn whale" onclick="openWhaleActivity()"><span class="icon-badge"><i class="ti ti-fish"></i></span>Киты<span class="count" id="whaleCount">···</span></button>
     <button class="quick-nav-btn new-listing" onclick="openNewListings()"><span class="icon-badge"><i class="ti ti-sparkles"></i></span>Новые монеты<span class="count" id="newListingCount">···</span></button>
     <button class="quick-nav-btn arbitrage" onclick="openArbitrage()"><span class="icon-badge"><i class="ti ti-arrows-exchange"></i></span>Арбитраж<span class="count" id="arbitrageCount">···</span></button>
+    <button class="quick-nav-btn top-movers" onclick="openTopMoversScreen()"><span class="icon-badge"><i class="ti ti-chart-bar"></i></span>Топ движения<span class="count" id="topMoversCount">···</span></button>
   </div>
 
   <div class="grid" id="coinsGrid">
@@ -209,7 +211,7 @@
   <div id="whaleScreen" class="screen">
     <div class="header">
       <button class="back-btn" onclick="closeScreen('whaleScreen')">← Назад</button>
-      <div class="detail-title">🐋 Активность китов</div>
+      <div class="detail-title"><i class="ti ti-fish" style="margin-right:6px;"></i>Активность китов</div>
     </div>
     <div class="timeframe-toggle" id="whaleFilterToggle">
       <button data-filter="all" class="selected" onclick="setWhaleFilter('all', this)">Все</button>
@@ -222,7 +224,7 @@
   <div id="newListingsScreen" class="screen">
     <div class="header">
       <button class="back-btn" onclick="closeScreen('newListingsScreen')">← Назад</button>
-      <div class="detail-title">🆕 Новые монеты</div>
+      <div class="detail-title"><i class="ti ti-sparkles" style="margin-right:6px;"></i>Новые монеты</div>
     </div>
     <div id="newListingsList"><div class="empty-state">Загрузка...</div></div>
   </div>
@@ -238,7 +240,7 @@
   <div id="arbitrageScreen" class="screen">
     <div class="header">
       <button class="back-btn" onclick="closeScreen('arbitrageScreen')">← Назад</button>
-      <div class="detail-title">💱 Арбитраж</div>
+      <div class="detail-title"><i class="ti ti-arrows-exchange" style="margin-right:6px;"></i>Арбитраж</div>
     </div>
     <div style="display:flex; gap:8px; margin:12px 16px 4px;">
       <button id="arb-tab-crypto" onclick="switchArbitrageTab('crypto')" style="flex:1; padding:8px; border-radius:10px; border:none; background:var(--accent, #6c5ce7); color:#fff; font-size:13px; font-weight:600;">Крипто</button>
@@ -246,6 +248,14 @@
     </div>
     <div id="paperStatsBox" style="display:none; margin:12px 16px; padding:12px 14px; border-radius:12px; background:rgba(255,255,255,0.05); font-size:13px;"></div>
     <div id="arbitrageList"><div class="empty-state">Загрузка...</div></div>
+  </div>
+
+  <div id="topMoversScreen" class="screen">
+    <div class="header">
+      <button class="back-btn" onclick="closeScreen('topMoversScreen')">← Назад</button>
+      <div class="detail-title"><i class="ti ti-chart-bar" style="margin-right:6px;"></i>Топ движения</div>
+    </div>
+    <div id="topMoversList"><div class="empty-state">Загрузка...</div></div>
   </div>
 
   <div id="settingsScreen" class="screen">
@@ -420,6 +430,39 @@
     document.getElementById("arbitrageScreen").classList.add("open");
     loadArbitrage();
     loadPaperStats();
+  }
+
+  function openTopMoversScreen() {
+    document.getElementById("topMoversScreen").classList.add("open");
+    loadTopMoversScreen();
+  }
+
+  async function loadTopMoversScreen() {
+    try {
+      const resp = await fetch(`${API_BASE}/api/coins/top-movers`);
+      const data = await resp.json();
+      const el = document.getElementById("topMoversList");
+      const gainers = data.gainers || [];
+      const losers = data.losers || [];
+      if (gainers.length === 0 && losers.length === 0) {
+        el.innerHTML = '<div class="empty-state">Данных пока нет</div>';
+        return;
+      }
+      const renderRow = (c) => `
+        <div class="feed-item" onclick="openCoinDetail('${c.symbol}')">
+          <div class="top-row">
+            <span class="symbol">${c.symbol}</span>
+            <span style="color:${c.price_change_24h_pct >= 0 ? '#4ade80' : '#f87171'}; font-weight:600;">${c.price_change_24h_pct >= 0 ? '+' : ''}${c.price_change_24h_pct.toFixed(2)}%</span>
+          </div>
+          <div class="detail" style="color: var(--text-dim);">$${c.price}</div>
+        </div>`;
+      el.innerHTML = `
+        ${gainers.length ? '<div style="padding:8px 4px; font-size:13px; color:var(--text-dim); font-weight:600;">Растут</div>' + gainers.map(renderRow).join("") : ""}
+        ${losers.length ? '<div style="padding:8px 4px; font-size:13px; color:var(--text-dim); font-weight:600;">Падают</div>' + losers.map(renderRow).join("") : ""}
+      `;
+    } catch (e) {
+      document.getElementById("topMoversList").innerHTML = '<div class="empty-state">Не удалось загрузить</div>';
+    }
   }
 
   function switchArbitrageTab(assetType) {
@@ -1222,21 +1265,26 @@
 
   async function loadNavCounts() {
     try {
-      const [whaleResp, newResp, arbResp] = await Promise.all([
+      const [whaleResp, newResp, arbResp, topResp] = await Promise.all([
         fetch(`${API_BASE}/api/signals/whale-activity?limit=1`),
         fetch(`${API_BASE}/api/coins/new-listings?limit=1`),
         fetch(`${API_BASE}/api/arbitrage/events?limit=1`),
+        fetch(`${API_BASE}/api/coins/top-movers`),
       ]);
       const whaleData = await whaleResp.json();
       const newData = await newResp.json();
       const arbData = await arbResp.json();
+      const topData = await topResp.json();
       document.getElementById("whaleCount").textContent = `${whaleData.count_24h ?? 0} за 24ч`;
       document.getElementById("newListingCount").textContent = `${newData.count_24h ?? 0} за 24ч`;
       document.getElementById("arbitrageCount").textContent = `${arbData.count_24h ?? 0} за 24ч`;
+      const bestMover = (topData.gainers && topData.gainers[0]) || null;
+      document.getElementById("topMoversCount").textContent = bestMover ? `лидер +${bestMover.price_change_24h_pct.toFixed(1)}%` : "";
     } catch (e) {
       document.getElementById("whaleCount").textContent = "";
       document.getElementById("newListingCount").textContent = "";
       document.getElementById("arbitrageCount").textContent = "";
+      document.getElementById("topMoversCount").textContent = "";
     }
   }
 
