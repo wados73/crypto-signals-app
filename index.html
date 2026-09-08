@@ -182,7 +182,7 @@
     <div id="levelsSection"></div>
 
     <div class="section-title">Торгуется на биржах</div>
-    <div id="exchangesSection" class="exchange-badges"></div>
+    <div id="exchangesSection"></div>
 
     <div class="section-title">Рынок</div>
     <div id="marketDataSection"></div>
@@ -934,9 +934,21 @@
         el.innerHTML = '<div class="empty-state">Не найдено</div>';
         return;
       }
-      el.innerHTML = data.exchanges.map(ex => {
-        const info = exchangeInfo(ex);
-        return `<span class="exchange-badge"><img src="${info.iconUrl}" style="width:16px;height:16px;border-radius:50%;vertical-align:middle;margin-right:5px;" onerror="this.style.display='none'">${ex}</span>`;
+      el.innerHTML = data.exchanges.map((ex, idx) => {
+        const info = exchangeInfo(ex.name);
+        const diffColor = idx === 0 ? 'var(--text-dim)' : (ex.diff_from_low_pct > 0.1 ? '#e74c3c' : 'var(--text-dim)');
+        const diffText = idx === 0 ? 'дешевле всех' : `+${ex.diff_from_low_pct}%`;
+        return `
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-radius:10px; background:var(--card-bg); margin-bottom:6px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <img src="${info.iconUrl}" style="width:20px;height:20px;border-radius:50%;" onerror="this.style.display='none'">
+              <span style="font-weight:600;">${ex.name}</span>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-weight:600;">$${ex.price}</div>
+              <div style="font-size:11px; color:${diffColor};">${diffText}</div>
+            </div>
+          </div>`;
       }).join("");
     } catch (e) {
       document.getElementById("exchangesSection").innerHTML = '<div class="empty-state">Не удалось загрузить</div>';
