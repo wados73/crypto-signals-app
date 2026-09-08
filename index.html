@@ -19,7 +19,7 @@
     --neutral: #d8d8dc;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 12px; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 16px; }
   .top-bar { display: flex; gap: 8px; margin-bottom: 16px; }
   .search-bar { flex: 1; padding: 12px 16px; border-radius: 12px; border: none; background: var(--card-bg); color: var(--text); font-size: 15px; }
   .icon-btn { background: var(--card-bg); border: none; color: var(--text); border-radius: 12px; padding: 0 14px; font-size: 18px; }
@@ -44,23 +44,19 @@
   .feed-item .detail { font-size: 12px; color: var(--text-dim); }
   .feed-item .detail.up { color: var(--green); }
   .feed-item .detail.down { color: var(--red); }
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .card { background: var(--card-bg); border-radius: 14px; padding: 14px; position: relative; border-left: 3px solid var(--neutral); }
-  .card.up { border-left-color: var(--green); }
-  .card.down { border-left-color: var(--red); }
-  .card .ticker-row { display: flex; align-items: center; gap: 6px; justify-content: space-between; }
-  .card .ticker-left { display: flex; align-items: center; gap: 6px; }
-  .card .coin-icon { width: 18px; height: 18px; border-radius: 50%; }
-  .coin-icon-fallback { width: 18px; height: 18px; border-radius: 50%; background: var(--neutral); color: var(--text); font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .card { background: var(--card-bg); border-radius: 16px; padding: 16px; position: relative; }
+  .card .ticker-row { display: flex; align-items: center; gap: 6px; justify-content: space-between; margin-bottom: 10px; }
+  .card .ticker-left { display: flex; align-items: center; gap: 8px; }
+  .card .coin-icon { width: 26px; height: 26px; border-radius: 50%; }
+  .coin-icon-fallback { width: 26px; height: 26px; border-radius: 50%; background: var(--neutral); color: var(--text); font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
   .coin-icon-fallback.big { width: 28px; height: 28px; font-size: 13px; }
-  .coin-icon-fallback { width: 18px; height: 18px; border-radius: 50%; background: var(--neutral); color: var(--text); font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
-  .coin-icon-fallback.big { width: 28px; height: 28px; font-size: 13px; }
-  .card .ticker { font-weight: 700; font-size: 15px; }
-  .card .price { color: var(--text-dim); font-size: 13px; margin-top: 2px; }
-  .card .signal-badge { display: inline-block; margin-top: 8px; padding: 3px 8px; border-radius: 8px; font-size: 11px; font-weight: 600; }
+  .card .ticker { font-weight: 600; font-size: 13px; }
+  .card .price { color: var(--text); font-size: 21px; font-weight: 600; margin-bottom: 10px; }
+  .card .signal-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; }
   .signal-badge.up { background: rgba(38,194,129,0.15); color: var(--green); }
   .signal-badge.down { background: rgba(229,72,77,0.15); color: var(--red); }
-  .card .signal-time { color: var(--text-dim); font-size: 10px; margin-top: 4px; }
+  .card .signal-time { color: var(--text-dim); font-size: 11px; margin-top: 10px; }
   .empty-state { text-align: center; color: var(--text-dim); padding: 40px 20px; font-size: 14px; }
   .star { cursor: pointer; }
   .star.active { color: #f5c518; }
@@ -823,7 +819,7 @@
             <img class="coin-icon" src="${coinIconUrl(c.symbol)}" onerror="iconFallback(this, '${c.symbol.replace('USDT','')}')">
             <span class="ticker">${c.symbol}</span></div></div>
           <div class="price">$${c.price ?? '—'}</div>
-          <div class="signal-badge up">▲ ${c.price_change_24h_pct != null ? c.price_change_24h_pct.toFixed(1) + '%' : ''} за 24ч</div>
+          <div class="signal-badge up"><i class="ti ti-arrow-up"></i>${c.price_change_24h_pct != null ? c.price_change_24h_pct.toFixed(1) + '%' : ''} за 24ч</div>
         </div>`).join("");
       const losersHtml = (data.losers || []).map(c => `
         <div class="card down" onclick="openCoinDetail('${c.symbol}')">
@@ -831,7 +827,7 @@
             <img class="coin-icon" src="${coinIconUrl(c.symbol)}" onerror="iconFallback(this, '${c.symbol.replace('USDT','')}')">
             <span class="ticker">${c.symbol}</span></div></div>
           <div class="price">$${c.price ?? '—'}</div>
-          <div class="signal-badge down">▼ ${c.price_change_24h_pct != null ? c.price_change_24h_pct.toFixed(1) + '%' : ''} за 24ч</div>
+          <div class="signal-badge down"><i class="ti ti-arrow-down"></i>${c.price_change_24h_pct != null ? c.price_change_24h_pct.toFixed(1) + '%' : ''} за 24ч</div>
         </div>`).join("");
       grid.innerHTML = `
         <div style="grid-column: 1 / -1; text-align:center; color: var(--text-dim); font-size:13px; padding: 10px 0;">Активных сигналов сейчас нет — топ движений за 24ч</div>
@@ -856,7 +852,7 @@
           ${watchlist.includes(coin.symbol) ? '<span style="color:#f5c518">★</span>' : ''}
         </div>
         <div class="price">${coin.price ? '$' + coin.price : '—'}</div>
-        <div class="signal-badge ${coin.direction}">${coin.direction === 'up' ? '▲ ВВЕРХ' : '▼ ВНИЗ'} · ${coin.signal_count} сигн.</div>
+        <div class="signal-badge ${coin.direction}"><i class="ti ti-arrow-${coin.direction === 'up' ? 'up' : 'down'}"></i>${coin.direction === 'up' ? 'ВВЕРХ' : 'ВНИЗ'} · ${coin.signal_count} сигн.</div>
         <div class="signal-time">${timeAgo(coin.triggered_at)}</div>
       </div>
     `).join("");
