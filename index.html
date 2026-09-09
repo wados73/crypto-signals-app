@@ -574,9 +574,9 @@
         return;
       }
       el.innerHTML = _arbitrageCache.map((e, idx) => `
-        <div class="feed-item" onclick="openCoinDetail('${e.symbol}')">
+        <div class="feed-item" onclick="openArbitrageDetail(${idx})">
           <div class="top-row">
-            <span class="symbol">${e.symbol} · ${e.diff_pct}%</span>
+            <span class="symbol" onclick="event.stopPropagation(); openCoinDetail('${e.symbol}')">${e.symbol} · ${e.diff_pct}%</span>
             <span class="time">${timeAgo(e.created_at)}</span>
           </div>
           <div class="detail" style="color: var(--text-dim); display:flex; align-items:center; gap:6px; margin-bottom:4px;">
