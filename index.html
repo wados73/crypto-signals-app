@@ -202,8 +202,11 @@
     <div class="section-title">Новости</div>
     <div id="newsSection"><div class="empty-state">Загрузка...</div></div>
 
-    <div class="section-title">Сработавшие сигналы</div>
-    <div id="recentSignals"><div class="empty-state">Нет данных</div></div>
+    <div class="section-title" onclick="toggleRecentSignals()" style="cursor:pointer; display:flex; align-items:center; justify-content:space-between;">
+      <span>Сработавшие сигналы</span>
+      <i class="ti ti-chevron-down" id="recentSignalsChevron" style="transition: transform 0.2s;"></i>
+    </div>
+    <div id="recentSignals" style="display:none;"><div class="empty-state">Нет данных</div></div>
     <div class="section-title">История сигналов по монете</div>
     <div id="signalHistory"><div class="empty-state">Нет данных</div></div>
   </div>
@@ -1105,6 +1108,14 @@
           return `<div class="history-item"><span>${a.direction === 'up' ? '▲' : '▼'} ${a.signal_count} сигн. · ${new Date(a.created_at).toLocaleDateString('ru-RU')}</span><span class="${statusClass}">${statusText}</span></div>`;
         }).join("")
       : '<div class="empty-state">Нет сигналов по этому фильтру</div>';
+  }
+
+  function toggleRecentSignals() {
+    const el = document.getElementById("recentSignals");
+    const chevron = document.getElementById("recentSignalsChevron");
+    const isHidden = el.style.display === "none";
+    el.style.display = isHidden ? "block" : "none";
+    chevron.style.transform = isHidden ? "rotate(180deg)" : "rotate(0deg)";
   }
 
   function formatBigNumber(num) {
