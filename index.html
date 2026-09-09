@@ -77,7 +77,7 @@
   #detailScreen { z-index: 200; }
   .screen.open { display: block; }
   .header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-  .back-btn { background: var(--card-bg); border: none; color: var(--text); padding: 8px 14px; border-radius: 10px; font-size: 16px; }
+  .back-btn { background: var(--card-bg); border: none; color: var(--text); width: 40px; height: 40px; border-radius: 50%; font-size: 18px; display: inline-flex; align-items: center; justify-content: center; }
   .detail-title { font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
   .detail-title img { width: 28px; height: 28px; border-radius: 50%; }
   .detail-price { color: var(--text-dim); font-size: 14px; }
@@ -165,7 +165,7 @@
 
   <div id="detailScreen" class="screen">
     <div class="header">
-      <button class="back-btn" onclick="closeScreen('detailScreen')">← Назад</button>
+      <button class="back-btn" onclick="closeScreen('detailScreen')"><i class="ti ti-arrow-left"></i></button>
       <div style="flex:1">
         <div class="detail-title"><img id="detailIcon" src="" onerror="this.style.display='none'"><span id="detailTicker">—</span></div>
         <div class="detail-price" id="detailPrice">—</div>
@@ -209,7 +209,7 @@
 
   <div id="statsScreen" class="screen">
     <div class="header">
-      <button class="back-btn" onclick="closeScreen('statsScreen')">← Назад</button>
+      <button class="back-btn" onclick="closeScreen('statsScreen')"><i class="ti ti-arrow-left"></i></button>
       <div class="detail-title">Статистика сигналов</div>
     </div>
     <div id="signalStatsSummary" style="display:none; margin:12px 16px; padding:12px 14px; border-radius:12px; background:rgba(255,255,255,0.05); font-size:13px;"></div>
@@ -218,7 +218,7 @@
 
   <div id="whaleScreen" class="screen">
     <div class="header">
-      <button class="back-btn" onclick="closeScreen('whaleScreen')">← Назад</button>
+      <button class="back-btn" onclick="closeScreen('whaleScreen')"><i class="ti ti-arrow-left"></i></button>
       <div class="detail-title"><i class="ti ti-fish" style="margin-right:6px;"></i>Активность китов</div>
     </div>
     <div class="timeframe-toggle" id="whaleFilterToggle">
@@ -231,7 +231,7 @@
 
   <div id="newListingsScreen" class="screen">
     <div class="header">
-      <button class="back-btn" onclick="closeScreen('newListingsScreen')">← Назад</button>
+      <button class="back-btn" onclick="closeScreen('newListingsScreen')"><i class="ti ti-arrow-left"></i></button>
       <div class="detail-title"><i class="ti ti-sparkles" style="margin-right:6px;"></i>Новые монеты</div>
     </div>
     <div id="newListingsList"><div class="empty-state">Загрузка...</div></div>
@@ -239,7 +239,7 @@
 
   <div id="eventDetailScreen" class="screen">
     <div class="header">
-      <button class="back-btn" onclick="closeScreen('eventDetailScreen')">← Назад</button>
+      <button class="back-btn" onclick="closeScreen('eventDetailScreen')"><i class="ti ti-arrow-left"></i></button>
       <div class="detail-title">Детали события</div>
     </div>
     <div id="eventDetailContent"></div>
@@ -247,7 +247,7 @@
 
   <div id="arbitrageScreen" class="screen">
     <div class="header">
-      <button class="back-btn" onclick="closeScreen('arbitrageScreen')">← Назад</button>
+      <button class="back-btn" onclick="closeScreen('arbitrageScreen')"><i class="ti ti-arrow-left"></i></button>
       <div class="detail-title"><i class="ti ti-arrows-exchange" style="margin-right:6px;"></i>Арбитраж</div>
     </div>
     <div style="display:flex; gap:8px; margin:12px 16px 4px;">
@@ -260,7 +260,7 @@
 
   <div id="topMoversScreen" class="screen">
     <div class="header">
-      <button class="back-btn" onclick="closeScreen('topMoversScreen')">← Назад</button>
+      <button class="back-btn" onclick="closeScreen('topMoversScreen')"><i class="ti ti-arrow-left"></i></button>
       <div class="detail-title"><i class="ti ti-chart-bar" style="margin-right:6px;"></i>Топ движения</div>
     </div>
     <div id="topMoversList"><div class="empty-state">Загрузка...</div></div>
@@ -268,7 +268,7 @@
 
   <div id="settingsScreen" class="screen">
     <div class="header">
-      <button class="back-btn" onclick="closeScreen('settingsScreen')">← Назад</button>
+      <button class="back-btn" onclick="closeScreen('settingsScreen')"><i class="ti ti-arrow-left"></i></button>
       <div class="detail-title">Настройки</div>
     </div>
     <div class="setting-row">
