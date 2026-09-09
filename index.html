@@ -601,7 +601,7 @@
     const lowEx = exchangeInfo(e.exchange_low);
     const highEx = exchangeInfo(e.exchange_high);
     document.getElementById("eventDetailContent").innerHTML = `
-      <div class="exchange-icon-badge">
+      <div class="exchange-icon-badge" style="cursor:pointer;" onclick="openCoinDetail('${e.symbol}')">
         <img src="${coinIconUrl(e.symbol)}" style="width:32px;height:32px;border-radius:50%;" onerror="iconFallback(this, '${e.symbol.replace('USDT','')}', false)">
         <span class="name">${e.symbol}</span>
       </div>
