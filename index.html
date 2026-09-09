@@ -1076,15 +1076,35 @@
         </div>`).join("")
       : '<div class="empty-state">Сигналов пока не было</div>';
 
+    _signalHistoryCache = data.signal_history || [];
+    renderSignalHistory();
+  }
+
+  let _signalHistoryCache = [];
+  let _historyFilterActive = "all";
+
+  function setHistoryFilter(filter, btnEl) {
+    _historyFilterActive = filter;
+    document.querySelectorAll('#historyFilterToggle button').forEach(b => b.classList.remove('selected'));
+    btnEl.classList.add('selected');
+    renderSignalHistory();
+  }
+
+  function renderSignalHistory() {
     const historyEl = document.getElementById("signalHistory");
-    historyEl.innerHTML = (data.signal_history && data.signal_history.length > 0)
-      ? data.signal_history.map(a => {
+    const filtered = _historyFilterActive === "all"
+      ? _signalHistoryCache
+      : _signalHistoryCache.filter(a =>
+          _historyFilterActive === "confirmed" ? a.was_confirmed_24h === true : a.was_confirmed_24h === false
+        );
+    historyEl.innerHTML = filtered.length > 0
+      ? filtered.map(a => {
           let statusClass = "pending", statusText = "ожидание";
           if (a.was_confirmed_24h === true) { statusClass = "confirmed"; statusText = "подтвердился"; }
           else if (a.was_confirmed_24h === false) { statusClass = "not-confirmed"; statusText = "не подтвердился"; }
           return `<div class="history-item"><span>${a.direction === 'up' ? '▲' : '▼'} ${a.signal_count} сигн. · ${new Date(a.created_at).toLocaleDateString('ru-RU')}</span><span class="${statusClass}">${statusText}</span></div>`;
         }).join("")
-      : '<div class="empty-state">История пуста</div>';
+      : '<div class="empty-state">Нет сигналов по этому фильтру</div>';
   }
 
   function formatBigNumber(num) {
