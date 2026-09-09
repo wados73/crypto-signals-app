@@ -574,7 +574,7 @@
         return;
       }
       el.innerHTML = _arbitrageCache.map((e, idx) => `
-        <div class="feed-item" onclick="openArbitrageDetail(${idx})">
+        <div class="feed-item" onclick="openCoinDetail('${e.symbol}')">
           <div class="top-row">
             <span class="symbol">${e.symbol} · ${e.diff_pct}%</span>
             <span class="time">${timeAgo(e.created_at)}</span>
