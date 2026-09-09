@@ -174,16 +174,16 @@
       <span class="star" id="favStar" style="font-size:24px" onclick="toggleFavorite()">☆</span>
     </div>
 
+    <div class="chart-toggle" style="margin-bottom:6px;">
+      <button id="chartTypeLine" class="selected" onclick="setChartType('line')">Линия</button>
+      <button id="chartTypeCandle" onclick="setChartType('candlestick')">Свечи</button>
+    </div>
     <div class="timeframe-toggle" id="timeframeToggle">
       <button data-tf="15m" data-limit="48" class="selected" onclick="setTimeframe('15m', 48, this)">15м</button>
       <button data-tf="1h" data-limit="48" onclick="setTimeframe('1h', 48, this)">1ч</button>
       <button data-tf="4h" data-limit="42" onclick="setTimeframe('4h', 42, this)">4ч</button>
       <button data-tf="1d" data-limit="30" onclick="setTimeframe('1d', 30, this)">1д</button>
       <button data-tf="1w" data-limit="26" onclick="setTimeframe('1w', 26, this)">1нед</button>
-    </div>
-    <div class="chart-toggle">
-      <button id="chartTypeLine" class="selected" onclick="setChartType('line')">Линия</button>
-      <button id="chartTypeCandle" onclick="setChartType('candlestick')">Свечи</button>
     </div>
     <div class="chart-container">
       <canvas id="lineCanvas"></canvas>
