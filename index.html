@@ -253,6 +253,7 @@
     <div style="display:flex; gap:8px; margin:12px 16px 4px;">
       <button id="arb-tab-crypto" onclick="switchArbitrageTab('crypto')" style="flex:1; padding:8px; border-radius:10px; border:none; background:var(--accent, #6c5ce7); color:#fff; font-size:13px; font-weight:600;">Крипто</button>
       <button id="arb-tab-stablecoin" onclick="switchArbitrageTab('stablecoin')" style="flex:1; padding:8px; border-radius:10px; border:none; background:rgba(255,255,255,0.08); color:var(--text-dim); font-size:13px; font-weight:600;">Стейблы</button>
+      <button id="arb-tab-top" onclick="switchArbitrageTab('top')" style="flex:1; padding:8px; border-radius:10px; border:none; background:rgba(255,255,255,0.08); color:var(--text-dim); font-size:13px; font-weight:600;">Топ</button>
     </div>
     <div id="paperStatsBox" style="display:none; margin:12px 16px; padding:12px 14px; border-radius:12px; background:rgba(255,255,255,0.05); font-size:13px;"></div>
     <div id="arbitrageList"><div class="empty-state">Загрузка...</div></div>
@@ -487,12 +488,46 @@
     _currentArbitrageTab = assetType;
     const cryptoTab = document.getElementById("arb-tab-crypto");
     const stableTab = document.getElementById("arb-tab-stablecoin");
+    const topTab = document.getElementById("arb-tab-top");
     const activeStyle = "flex:1; padding:8px; border-radius:10px; border:none; background:var(--accent, #6c5ce7); color:#fff; font-size:13px; font-weight:600;";
     const inactiveStyle = "flex:1; padding:8px; border-radius:10px; border:none; background:rgba(255,255,255,0.08); color:var(--text-dim); font-size:13px; font-weight:600;";
     cryptoTab.style.cssText = assetType === "crypto" ? activeStyle : inactiveStyle;
     stableTab.style.cssText = assetType === "stablecoin" ? activeStyle : inactiveStyle;
-    loadArbitrage();
-    loadPaperStats();
+    topTab.style.cssText = assetType === "top" ? activeStyle : inactiveStyle;
+
+    document.getElementById("paperStatsBox").style.display = assetType === "top" ? "none" : "";
+
+    if (assetType === "top") {
+      loadTopArbitrageSymbols();
+    } else {
+      loadArbitrage();
+      loadPaperStats();
+    }
+  }
+
+  async function loadTopArbitrageSymbols() {
+    const el = document.getElementById("arbitrageList");
+    el.innerHTML = '<div class="empty-state">Загрузка...</div>';
+    try {
+      const resp = await fetch(`${API_BASE}/api/arbitrage/top-symbols?asset_type=crypto`);
+      const data = await resp.json();
+      const rows = data.top_symbols || [];
+      if (rows.length === 0) {
+        el.innerHTML = '<div class="empty-state">Недостаточно данных пока</div>';
+        return;
+      }
+      el.innerHTML = rows.map((r, idx) => `
+        <div class="feed-item" onclick="openCoinDetail('${r.symbol}')">
+          <div class="top-row">
+            <span class="symbol">#${idx + 1} ${r.symbol}</span>
+            <span style="color:${r.win_rate_pct >= 70 ? '#4ade80' : '#f87171'}; font-weight:600;">${r.win_rate_pct}%</span>
+          </div>
+          <div class="detail" style="color: var(--text-dim);">Сделок: ${r.trades} · Профит: <span style="color:${r.avg_profit_pct >= 0 ? '#4ade80' : '#f87171'};">${r.avg_profit_pct}%</span></div>
+        </div>
+      `).join("");
+    } catch (e) {
+      el.innerHTML = '<div class="empty-state">Не удалось загрузить</div>';
+    }
   }
 
   async function loadPaperStats() {
