@@ -635,9 +635,9 @@
   async function loadEventPriceChart(symbol) {
     const container = document.getElementById("eventPriceChart");
     try {
-      const resp = await fetch(`${API_BASE}/api/arbitrage/events?symbol=${symbol}&limit=50`);
+      const resp = await fetch(`${API_BASE}/api/arbitrage/events?symbol=${symbol}&limit=500`);
       const data = await resp.json();
-      const events = (data.events || []).slice().reverse();
+      const events = (data.events || []).filter(ev => ev.symbol === symbol).slice(0, 50).reverse();
       if (events.length < 2) {
         container.innerHTML = '<div class="empty-state">Недостаточно истории по этой монете</div>';
         return;
