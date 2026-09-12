@@ -258,11 +258,9 @@
       <button id="arb-tab-crypto" onclick="switchArbitrageTab('crypto')" style="flex:1; padding:8px; border-radius:10px; border:none; background:var(--accent, #6c5ce7); color:#fff; font-size:13px; font-weight:600;">Крипто</button>
       <button id="arb-tab-stablecoin" onclick="switchArbitrageTab('stablecoin')" style="flex:1; padding:8px; border-radius:10px; border:none; background:rgba(255,255,255,0.08); color:var(--text-dim); font-size:13px; font-weight:600;">Стейблы</button>
       <button id="arb-tab-top" onclick="switchArbitrageTab('top')" style="flex:1; padding:8px; border-radius:10px; border:none; background:rgba(255,255,255,0.08); color:var(--text-dim); font-size:13px; font-weight:600;">Топ</button>
-      <button id="arb-tab-chart" onclick="switchArbitrageTab('chart')" style="flex:1; padding:8px; border-radius:10px; border:none; background:rgba(255,255,255,0.08); color:var(--text-dim); font-size:13px; font-weight:600;">График</button>
     </div>
     <div id="paperStatsBox" style="display:none; margin:12px 16px; padding:12px 14px; border-radius:12px; background:rgba(255,255,255,0.05); font-size:13px;"></div>
     <div id="arbitrageList"><div class="empty-state">Загрузка...</div></div>
-      <div id="priceChartContainer" style="display:none; padding:0 16px;"></div>
   </div>
 
   <div id="topMoversScreen" class="screen">
@@ -495,73 +493,22 @@
     const cryptoTab = document.getElementById("arb-tab-crypto");
     const stableTab = document.getElementById("arb-tab-stablecoin");
     const topTab = document.getElementById("arb-tab-top");
-    const chartTab = document.getElementById("arb-tab-chart");
     const activeStyle = "flex:1; padding:8px; border-radius:10px; border:none; background:var(--accent, #6c5ce7); color:#fff; font-size:13px; font-weight:600;";
     const inactiveStyle = "flex:1; padding:8px; border-radius:10px; border:none; background:rgba(255,255,255,0.08); color:var(--text-dim); font-size:13px; font-weight:600;";
     cryptoTab.style.cssText = assetType === "crypto" ? activeStyle : inactiveStyle;
     stableTab.style.cssText = assetType === "stablecoin" ? activeStyle : inactiveStyle;
     topTab.style.cssText = assetType === "top" ? activeStyle : inactiveStyle;
-    chartTab.style.cssText = assetType === "chart" ? activeStyle : inactiveStyle;
 
-    document.getElementById("paperStatsBox").style.display = assetType === "top" || assetType === "chart" ? "none" : "";
-    document.getElementById("arbitrageList").style.display = assetType === "chart" ? "none" : "";
-    document.getElementById("priceChartContainer").style.display = assetType === "chart" ? "" : "none";
+    document.getElementById("paperStatsBox").style.display = assetType === "top" ? "none" : "";
 
     if (assetType === "top") {
       loadTopArbitrageSymbols();
-    } else if (assetType === "chart") {
-      loadPriceChart("ONEUSDT");
     } else {
       loadArbitrage();
       loadPaperStats();
     }
   }
 
-  async function loadPriceChart(symbol) {
-    const container = document.getElementById("priceChartContainer");
-    container.innerHTML = '<div class="empty-state">Загрузка графика...</div>';
-    try {
-      const resp = await fetch(`${API_BASE}/api/arbitrage/events?symbol=${symbol}&limit=50`);
-      const data = await resp.json();
-      const events = (data.events || []).slice().reverse();
-      if (events.length < 2) {
-        container.innerHTML = '<div class="empty-state">Недостаточно данных для графика</div>';
-        return;
-      }
-
-      const exchangeCounts = {};
-      events.forEach(e => { exchangeCounts[e.exchange_low] = (exchangeCounts[e.exchange_low] || 0) + 1; });
-      const total = events.length;
-      const stabilityText = Object.entries(exchangeCounts)
-        .sort((a, b) => b[1] - a[1])
-        .map(([ex, cnt]) => `${ex}: ${Math.round(cnt / total * 100)}%`)
-        .join(" · ");
-
-      const w = 340, h = 160, pad = 10;
-      const diffs = events.map(e => e.diff_pct);
-      const minD = Math.min(...diffs), maxD = Math.max(...diffs);
-      const range = (maxD - minD) || 1;
-      const points = events.map((e, i) => {
-        const x = pad + (i / (events.length - 1)) * (w - pad * 2);
-        const y = h - pad - ((e.diff_pct - minD) / range) * (h - pad * 2);
-        return `${x.toFixed(1)},${y.toFixed(1)}`;
-      }).join(" ");
-
-      container.innerHTML = `
-        <div class="detail-title" style="font-size:14px; margin-bottom:8px;">${symbol} — динамика спреда (последние ${events.length})</div>
-        <div style="font-size:12px; color:var(--text-dim); margin-bottom:10px;">Кто чаще дешевле: ${stabilityText}</div>
-        <svg viewBox="0 0 ${w} ${h}" style="width:100%; background:rgba(255,255,255,0.03); border-radius:12px;">
-          <polyline points="${points}" fill="none" stroke="var(--accent, #6c5ce7)" stroke-width="2"/>
-        </svg>
-        <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-dim); margin-top:6px;">
-          <span>мин ${minD.toFixed(2)}%</span>
-          <span>макс ${maxD.toFixed(2)}%</span>
-        </div>
-      `;
-    } catch (e) {
-      container.innerHTML = '<div class="empty-state">Ошибка загрузки графика</div>';
-    }
-  }
 
   async function loadTopArbitrageSymbols() {
     const el = document.getElementById("arbitrageList");
@@ -678,7 +625,54 @@
         </div>
         <div class="row"><span class="label">Время</span><span>${new Date(e.created_at).toLocaleString('ru-RU')}</span></div>
       </div>
+    <div id="eventPriceChart" style="padding:0 16px;"><div class="empty-state">Загрузка графика...</div></div>
     `;
+    loadEventPriceChart(e.symbol);
+  }
+
+  async function loadEventPriceChart(symbol) {
+    const container = document.getElementById("eventPriceChart");
+    try {
+      const resp = await fetch(`${API_BASE}/api/arbitrage/events?symbol=${symbol}&limit=50`);
+      const data = await resp.json();
+      const events = (data.events || []).slice().reverse();
+      if (events.length < 2) {
+        container.innerHTML = '<div class="empty-state">Недостаточно истории по этой монете</div>';
+        return;
+      }
+
+      const exchangeCounts = {};
+      events.forEach(ev => { exchangeCounts[ev.exchange_low] = (exchangeCounts[ev.exchange_low] || 0) + 1; });
+      const total = events.length;
+      const stabilityText = Object.entries(exchangeCounts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([ex, cnt]) => `${ex}: ${Math.round(cnt / total * 100)}%`)
+        .join(" · ");
+
+      const w = 340, h = 140, pad = 10;
+      const diffs = events.map(ev => ev.diff_pct);
+      const minD = Math.min(...diffs), maxD = Math.max(...diffs);
+      const range = (maxD - minD) || 1;
+      const points = events.map((ev, i) => {
+        const x = pad + (i / (events.length - 1)) * (w - pad * 2);
+        const y = h - pad - ((ev.diff_pct - minD) / range) * (h - pad * 2);
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      }).join(" ");
+
+      container.innerHTML = `
+        <div class="label" style="margin:12px 0 6px;">Динамика спреда (последние ${events.length})</div>
+        <div style="font-size:12px; color:var(--text-dim); margin-bottom:8px;">Кто чаще дешевле: ${stabilityText}</div>
+        <svg viewBox="0 0 ${w} ${h}" style="width:100%; background:rgba(255,255,255,0.03); border-radius:12px;">
+          <polyline points="${points}" fill="none" stroke="var(--accent, #6c5ce7)" stroke-width="2"/>
+        </svg>
+        <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-dim); margin-top:6px;">
+          <span>мин ${minD.toFixed(2)}%</span>
+          <span>макс ${maxD.toFixed(2)}%</span>
+        </div>
+      `;
+    } catch (err) {
+      container.innerHTML = '<div class="empty-state">Не удалось загрузить график</div>';
+    }
   }
 
   function openWhaleActivity() {
