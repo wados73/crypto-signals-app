@@ -145,6 +145,7 @@
   .watchlist-item { display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); padding: 10px 14px; border-radius: 12px; margin-bottom: 6px; }
   .remove-btn { background: transparent; border: none; color: var(--red); font-size: 18px; }
 </style>
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
 </head>
 <body>
   <div class="top-bar">
@@ -657,7 +658,7 @@
     try {
       const resp = await fetch(`${API_BASE}/api/arbitrage/events?symbol=${symbol}&limit=500`);
       const data = await resp.json();
-      const events = (data.events || []).filter(ev => ev.symbol === symbol).slice(0, 50).reverse();
+      const events = (data.events || []).filter(ev => ev.symbol === symbol).reverse();
       if (events.length < 2) {
         container.innerHTML = '<div class="empty-state">Недостаточно истории по этой монете</div>';
         return;
@@ -676,37 +677,46 @@
         </div>`;
       }).join("");
 
-      const w = 340, h = 150, pad = 14;
-      const diffs = events.map(ev => ev.diff_pct);
-      const minD = Math.min(...diffs), maxD = Math.max(...diffs);
-      const range = (maxD - minD) || 1;
-      const midD = (minD + maxD) / 2;
-      const points = events.map((ev, i) => {
-        const x = pad + (i / (events.length - 1)) * (w - pad * 2 - 34);
-        const y = h - pad - ((ev.diff_pct - minD) / range) * (h - pad * 2);
-        return { x, y, diff: ev.diff_pct, low: ev.exchange_low, time: ev.created_at };
-      });
-      const polylinePoints = points.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
-      const lastPoint = points[points.length - 1];
-      const firstTime = new Date(events[0].created_at).toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
-      const lastTime = new Date(events[events.length-1].created_at).toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
-
       container.innerHTML = `
-        <div class="label" style="margin:12px 0 6px;">Динамика спреда (последние ${events.length} событий)</div>
+        <div class="label" style="margin:12px 0 6px;">Динамика спреда (последние ${events.length} событий) — можно крутить пальцем</div>
         <div style="display:flex; gap:14px; margin-bottom:10px;">${legendHtml}</div>
-        <svg viewBox="0 0 ${w} ${h}" style="width:100%; background:rgba(255,255,255,0.03); border-radius:12px;">
-          <line x1="${pad}" y1="${h - pad - ((midD - minD) / range) * (h - pad * 2)}" x2="${w - 34}" y2="${h - pad - ((midD - minD) / range) * (h - pad * 2)}" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
-          <polyline points="${polylinePoints}" fill="none" stroke="var(--accent, #6c5ce7)" stroke-width="2"/>
-          <circle cx="${lastPoint.x}" cy="${lastPoint.y}" r="4" fill="var(--accent, #6c5ce7)"/>
-          <text x="${w - 30}" y="${pad + 4}" font-size="11" fill="rgba(255,255,255,0.5)">${maxD.toFixed(2)}%</text>
-          <text x="${w - 30}" y="${h - pad + 4}" font-size="11" fill="rgba(255,255,255,0.5)">${minD.toFixed(2)}%</text>
-          <text x="${lastPoint.x - 20}" y="${lastPoint.y - 8}" font-size="12" fill="#fff" font-weight="600">${lastPoint.diff.toFixed(2)}%</text>
-        </svg>
-        <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-dim); margin-top:6px;">
-          <span>${firstTime}</span>
-          <span>сейчас: ${lastTime}</span>
-        </div>
+        <div id="lwChartContainer" style="width:100%; height:220px; border-radius:12px; overflow:hidden;"></div>
       `;
+
+      const chartEl = document.getElementById("lwChartContainer");
+      const chart = LightweightCharts.createChart(chartEl, {
+        width: chartEl.clientWidth,
+        height: 220,
+        layout: { background: { color: 'rgba(255,255,255,0.03)' }, textColor: 'rgba(255,255,255,0.6)' },
+        grid: {
+          vertLines: { color: 'rgba(255,255,255,0.08)' },
+          horzLines: { color: 'rgba(255,255,255,0.08)' },
+        },
+        timeScale: { timeVisible: true, secondsVisible: false, borderColor: 'rgba(255,255,255,0.1)' },
+        rightPriceScale: { borderColor: 'rgba(255,255,255,0.1)' },
+        handleScroll: true,
+        handleScale: true,
+      });
+
+      const series = chart.addLineSeries({
+        color: '#6c5ce7',
+        lineWidth: 2,
+      });
+
+      const seen = new Set();
+      const lineData = [];
+      events.forEach(ev => {
+        const t = Math.floor(new Date(ev.created_at).getTime() / 1000);
+        if (seen.has(t)) return;
+        seen.add(t);
+        lineData.push({ time: t, value: ev.diff_pct });
+      });
+      series.setData(lineData);
+      chart.timeScale().fitContent();
+
+      window.addEventListener('resize', () => {
+        if (chartEl.isConnected) chart.applyOptions({ width: chartEl.clientWidth });
+      });
 
       // Дополнительно: показываем регулярность появления возможностей
       try {
