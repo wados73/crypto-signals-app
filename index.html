@@ -559,6 +559,26 @@
           <span style="opacity:0.7;">В ожидании / неудачных</span><span>${d.pending_count} / ${d.failed_count}</span>
         </div>
       `;
+
+      if (_currentArbitrageTab === "crypto") {
+        try {
+          const covResp = await fetch(`${API_BASE}/api/arbitrage/coverage`);
+          const cov = await covResp.json();
+          if (cov.available) {
+            box.innerHTML += `
+              <div style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.1);">
+                <div style="font-weight:600; margin-bottom:6px;">🔍 Охват сканирования</div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+                  <span style="opacity:0.7;">Ядро (каждый цикл)</span><span>${cov.core_count} монет</span>
+                </div>
+                <div style="display:flex; justify-content:space-between;">
+                  <span style="opacity:0.7;">Хвост (по очереди)</span><span>${cov.tail_total} монет</span>
+                </div>
+              </div>
+            `;
+          }
+        } catch (e) {}
+      }
     } catch (e) {
       box.style.display = "none";
     }
