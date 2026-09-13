@@ -687,6 +687,30 @@
           <span>сейчас: ${lastTime}</span>
         </div>
       `;
+
+      // Дополнительно: показываем регулярность появления возможностей
+      try {
+        const topResp = await fetch(`${API_BASE}/api/arbitrage/top-symbols?limit=30`);
+        const topData = await topResp.json();
+        const symbolStats = (topData.top_symbols || []).find(s => s.symbol === symbol);
+        if (symbolStats && symbolStats.avg_gap_minutes) {
+          const cv = symbolStats.regularity_cv;
+          const regularityLabel = cv === null ? "недостаточно данных" : cv < 0.3 ? "очень регулярно" : cv < 0.7 ? "умеренно регулярно" : "хаотично";
+          const regularityColor = cv === null ? "var(--text-dim)" : cv < 0.3 ? "#2ecc71" : cv < 0.7 ? "#f39c12" : "#e74c3c";
+          container.innerHTML += `
+            <div class="card" style="margin-top:10px; padding:12px;">
+              <div class="label" style="margin-bottom:8px;">Ритмичность появления возможностей</div>
+              <div style="display:flex; justify-content:space-between; font-size:13px;">
+                <span>Средний интервал: <b>${symbolStats.avg_gap_minutes.toFixed(0)} мин</b></span>
+                <span style="color:${regularityColor};">${regularityLabel}</span>
+              </div>
+              <div style="font-size:11px; color:var(--text-dim); margin-top:4px;">
+                ${symbolStats.frequency_per_hour.toFixed(2)} возможностей/час · стабильность направления ${(symbolStats.stability_score*100).toFixed(0)}%
+              </div>
+            </div>
+          `;
+        }
+      } catch (e) {}
     } catch (err) {
       container.innerHTML = '<div class="empty-state">Не удалось загрузить график</div>';
     }
