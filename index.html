@@ -684,7 +684,7 @@
       }).join("");
 
       container.innerHTML = `
-        <div class="label" style="margin:12px 0 6px;">Динамика спреда (последние ${events.length} событий) — можно крутить пальцем</div>
+        <div class="label" style="margin:12px 0 6px;">Динамика спреда (последние ${events.length} событий)</div>
         <div style="display:flex; gap:14px; margin-bottom:10px;">${legendHtml}</div>
         <div style="display:flex; gap:6px; margin-bottom:8px;">
           <button id="chartModeLine" class="chart-mode-btn active" onclick="setChartMode('line')" style="padding:4px 12px; border-radius:8px; border:none; font-size:12px; background:var(--accent, #6c5ce7); color:#fff;">Линия</button>
