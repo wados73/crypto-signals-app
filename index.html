@@ -1106,14 +1106,14 @@
       const isConnected = connected[ex];
       const info = exchangeInfo(ex);
       return `
-        <div class="trade" style="margin-bottom:8px;">
+        <div class="trade" style="margin-bottom:8px; justify-content:space-between;">
           <div style="display:flex; align-items:center; gap:8px;">
-            <img src="${info.iconUrl}" style="width:20px;height:20px;border-radius:50%;" onerror="this.style.display=&quot;none&quot;">
+            <img src="${info.iconUrl}" style="width:20px;height:20px;border-radius:50%;" onerror="this.style.display='none'">
             <span>${ex}</span>
           </div>
           ${isConnected
-            ? `<span style="color:var(--green,#26c281); font-size:13px;">✅ ...${isConnected} <a href="#" onclick="deleteExchangeKey('${ex}'); return false;" style="color:var(--red,#e5484d); margin-left:8px;">✕</a></span>`
-            : `<button class="option-btn" onclick="openExchangeKeyForm('${ex}')">Добавить ключ</button>`
+            ? `<span style="color:var(--green,#26c281); font-size:13px; white-space:nowrap;">✅ ...${isConnected} <a href="#" onclick="deleteExchangeKey('${ex}'); return false;" style="color:var(--red,#e5484d); margin-left:8px;">✕</a></span>`
+            : `<button class="option-btn" style="flex-shrink:0;" onclick="openExchangeKeyForm('${ex}')">Добавить ключ</button>`
           }
         </div>
       `;
