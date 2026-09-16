@@ -1165,10 +1165,16 @@
 
     if (status.status === "pending") {
       container.innerHTML = `
-        <div class="trade" style="flex-direction:column; align-items:flex-start; gap:6px;">
-          <span>Тариф ${status.tier}: ожидает оплату</span>
-          <span style="font-size:13px; opacity:0.8;">Переведите РОВНО ${status.payment_amount_usdt} USDT (сеть TON) на:</span>
-          <span style="font-size:12px; word-break:break-all; opacity:0.6;">${tiersData.payment_address}</span>
+        <div class="trade" style="flex-direction:column; align-items:stretch; gap:8px;">
+          <div style="display:flex; justify-content:space-between;">
+            <span>Тариф ${status.tier}</span>
+            <span style="opacity:0.8;">ожидает оплату</span>
+          </div>
+          <div style="font-size:13px; opacity:0.8;">Переведите РОВНО ${status.payment_amount_usdt} USDT (сеть TON) на:</div>
+          <div style="display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.05); border-radius:8px; padding:8px;">
+            <span id="paymentAddressText" style="font-size:12px; word-break:break-all; opacity:0.8; flex:1;">${tiersData.payment_address}</span>
+            <button class="option-btn" style="flex-shrink:0; padding:6px 10px; font-size:12px;" onclick="copyPaymentAddress('${tiersData.payment_address}')">Копировать</button>
+          </div>
         </div>
       `;
       return;
@@ -1184,6 +1190,14 @@
         <button class="option-btn" onclick="subscribeTier('${t.tier}')">Оформить</button>
       </div>
     `).join("");
+  }
+
+  function copyPaymentAddress(address) {
+    navigator.clipboard.writeText(address).then(() => {
+      alert("Адрес скопирован");
+    }).catch(() => {
+      alert("Не удалось скопировать — скопируйте вручную");
+    });
   }
 
   async function subscribeTier(tier) {
