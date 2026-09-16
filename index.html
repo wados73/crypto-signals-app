@@ -320,7 +320,7 @@
         в результате использования бота.
       </div>
       <label style="display:flex; align-items:center; gap:8px; margin-bottom:16px; font-size:14px;">
-        <input type="checkbox" id="riskCheckbox">
+        <input type="checkbox" id="riskCheckbox" onclick="document.getElementById('acceptRiskBtn').disabled = !this.checked;">
         Я понимаю и принимаю условия использования
       </label>
       <button class="option-btn" style="width:100%;" id="acceptRiskBtn" onclick="acceptRiskDisclaimer()" disabled>Согласен, продолжить</button>
@@ -350,7 +350,7 @@
       <input type="text" id="exchangeSecretInput" placeholder="API Secret" style="width:100%; padding:12px; margin-bottom:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.05); color:inherit;">
       <input type="text" id="exchangePassphraseInput" placeholder="API Passphrase (только для KuCoin)" style="width:100%; padding:12px; margin-bottom:16px; border-radius:8px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.05); color:inherit;">
       <label style="display:flex; align-items:center; gap:8px; margin-bottom:16px; font-size:13px;">
-        <input type="checkbox" id="exchangeKeyConfirmCheckbox">
+        <input type="checkbox" id="exchangeKeyConfirmCheckbox" onclick="document.getElementById('saveExchangeKeyBtn').disabled = !this.checked;">
         Я подтверждаю, что выдал разрешение только на торговлю
       </label>
       <button class="option-btn" style="width:100%;" id="saveExchangeKeyBtn" onclick="saveExchangeKey()" disabled>Сохранить</button>
