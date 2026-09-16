@@ -1106,7 +1106,7 @@
       const isConnected = connected[ex];
       const info = exchangeInfo(ex);
       return `
-        <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; background:rgba(255,255,255,0.05); border-radius:10px; margin-bottom:8px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 12px; background:rgba(255,255,255,0.05); border-radius:10px; margin-bottom:8px;">
           <div style="display:flex; align-items:center; gap:8px;">
             <img src="${info.iconUrl}" style="width:20px;height:20px;border-radius:50%;" onerror="this.style.display='none'">
             <span>${ex}</span>
@@ -1180,12 +1180,12 @@
       return;
     }
     if (status.status === "active") {
-      container.innerHTML = `<div style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; background:rgba(255,255,255,0.05); border-radius:10px; margin-bottom:8px;"><span>Активен тариф: ${status.tier}</span><span style="color:var(--green,#26c281);">✅</span></div>`;
+      container.innerHTML = `<div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 12px; background:rgba(255,255,255,0.05); border-radius:10px; margin-bottom:8px;"><span>Активен тариф: ${status.tier}</span><span style="color:var(--green,#26c281);">✅</span></div>`;
       return;
     }
 
     container.innerHTML = tiersData.tiers.map(t => `
-      <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; background:rgba(255,255,255,0.05); border-radius:10px; margin-bottom:8px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 12px; background:rgba(255,255,255,0.05); border-radius:10px; margin-bottom:8px;">
         <span>${t.tier} — ${t.price_usdt} USDT/мес</span>
         <button class="option-btn" onclick="subscribeTier('${t.tier}')">Оформить</button>
       </div>
