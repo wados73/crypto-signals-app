@@ -323,7 +323,7 @@
         <input type="checkbox" id="riskCheckbox" onclick="document.getElementById('acceptRiskBtn').disabled = !this.checked;">
         Я понимаю и принимаю условия использования
       </label>
-      <button class="option-btn" style="width:100%;" id="acceptRiskBtn" onclick="acceptRiskDisclaimer()" disabled>Согласен, продолжить</button>
+      <button class="option-btn" style="width:100%;" id="acceptRiskBtn" onclick="acceptRiskDisclaimer()">Согласен, продолжить</button>
     </div>
 
     <div id="myBotMainBlock" style="display:none;">
@@ -353,7 +353,7 @@
         <input type="checkbox" id="exchangeKeyConfirmCheckbox" onclick="document.getElementById('saveExchangeKeyBtn').disabled = !this.checked;">
         Я подтверждаю, что выдал разрешение только на торговлю
       </label>
-      <button class="option-btn" style="width:100%;" id="saveExchangeKeyBtn" onclick="saveExchangeKey()" disabled>Сохранить</button>
+      <button class="option-btn" style="width:100%;" id="saveExchangeKeyBtn" onclick="saveExchangeKey()">Сохранить</button>
     </div>
   </div>
 
@@ -1085,6 +1085,10 @@
   });
 
   async function acceptRiskDisclaimer() {
+    if (!document.getElementById("riskCheckbox").checked) {
+      alert("Сначала поставьте галочку согласия");
+      return;
+    }
     await fetch(`${API_BASE}/api/users/${TELEGRAM_ID}/accept-risk-disclaimer`, { method: "POST" });
     openMyBot();
   }
@@ -1117,7 +1121,6 @@
     document.getElementById("exchangeSecretInput").value = "";
     document.getElementById("exchangePassphraseInput").value = "";
     document.getElementById("exchangeKeyConfirmCheckbox").checked = false;
-    document.getElementById("saveExchangeKeyBtn").disabled = true;
     document.getElementById("exchangeKeyFormScreen").classList.add("open");
   }
 
@@ -1125,6 +1128,10 @@
     const apiKey = document.getElementById("exchangeKeyInput").value.trim();
     const apiSecret = document.getElementById("exchangeSecretInput").value.trim();
     const apiPassphrase = document.getElementById("exchangePassphraseInput").value.trim();
+    if (!document.getElementById("exchangeKeyConfirmCheckbox").checked) {
+      alert("Сначала подтвердите, что выдали разрешение только на торговлю");
+      return;
+    }
     if (!apiKey || !apiSecret) return;
 
     const params = new URLSearchParams({ exchange: pendingExchangeKeyTarget, api_key: apiKey, api_secret: apiSecret });
