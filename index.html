@@ -1113,7 +1113,7 @@
           </div>
           ${isConnected
             ? `<span style="color:var(--green,#26c281); font-size:13px; white-space:nowrap;">✅ ...${isConnected} <a href="#" onclick="deleteExchangeKey('${ex}'); return false;" style="color:var(--red,#e5484d); margin-left:8px;">✕</a></span>`
-            : `<button class="option-btn" style="flex-shrink:0;" onclick="openExchangeKeyForm('${ex}')">Добавить ключ</button>`
+            : `<button class="option-btn" style="flex-shrink:0; width:150px;" onclick="openExchangeKeyForm('${ex}')">Добавить ключ</button>`
           }
         </div>
       `;
@@ -1166,15 +1166,18 @@
     if (status.status === "pending") {
       container.innerHTML = `
         <div style="display:flex; flex-direction:column; align-items:stretch; gap:8px; padding:10px 12px; background:rgba(255,255,255,0.05); border-radius:10px; margin-bottom:8px;">
-          <div style="display:flex; justify-content:space-between;">
-            <span>Тариф ${status.tier}</span>
-            <span style="opacity:0.8;">ожидает оплату</span>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <button onclick="cancelPendingSubscription()" style="background:none; border:none; color:inherit; font-size:20px; padding:0; cursor:pointer;">←</button>
+            <div style="display:flex; justify-content:space-between; flex:1;">
+              <span>Тариф ${status.tier}</span>
+              <span style="opacity:0.8;">ожидает оплату</span>
+            </div>
           </div>
           <div style="font-size:13px; opacity:0.8;">Переведите РОВНО ${status.payment_amount_usdt} USDT (сеть TON) на:</div>
-          <div style="display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.05); border-radius:8px; padding:8px;">
-            <span id="paymentAddressText" style="font-size:12px; word-break:break-all; opacity:0.8; flex:1;">${tiersData.payment_address}</span>
-            <button class="option-btn" style="flex-shrink:0; padding:6px 10px; font-size:12px;" onclick="copyPaymentAddress('${tiersData.payment_address}')">Копировать</button>
+          <div style="background:rgba(255,255,255,0.05); border-radius:10px; padding:12px;">
+            <span id="paymentAddressText" style="font-size:12px; word-break:break-all; opacity:0.8;">${tiersData.payment_address}</span>
           </div>
+          <button class="option-btn" style="width:100%;" onclick="copyPaymentAddress('${tiersData.payment_address}')">Копировать</button>
         </div>
       `;
       return;
@@ -1187,9 +1190,14 @@
     container.innerHTML = tiersData.tiers.map(t => `
       <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 12px; background:rgba(255,255,255,0.05); border-radius:10px; margin-bottom:8px;">
         <span>${t.tier} — ${t.price_usdt} USDT/мес</span>
-        <button class="option-btn" onclick="subscribeTier('${t.tier}')">Оформить</button>
+        <button class="option-btn" style="width:150px;" onclick="subscribeTier('${t.tier}')">Оформить</button>
       </div>
     `).join("");
+  }
+
+  async function cancelPendingSubscription() {
+    await fetch(`${API_BASE}/api/users/${TELEGRAM_ID}/subscription`, { method: "DELETE" });
+    loadSubscriptionStatus();
   }
 
   function copyPaymentAddress(address) {
