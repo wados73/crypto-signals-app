@@ -151,6 +151,7 @@
   <div class="top-bar">
     <input class="search-bar" type="text" placeholder="Поиск монеты..." id="searchInput">
     <button class="icon-btn" onclick="openStats()"><i class="ti ti-chart-bar"></i></button>
+    <button class="icon-btn" onclick="openMyBot()"><i class="ti ti-robot"></i></button>
     <button class="icon-btn" onclick="openSettings()"><i class="ti ti-settings"></i></button>
   </div>
   <div class="quick-nav-row">
@@ -302,6 +303,58 @@
     </div>
     <div class="section-title">Избранное</div>
     <div id="watchlistContainer"><div class="empty-state">Список пуст</div></div>
+  </div>
+
+  <div id="myBotScreen" class="screen">
+    <div class="header">
+      <button class="back-btn" onclick="closeScreen('myBotScreen')"><i class="ti ti-arrow-left"></i></button>
+      <div class="detail-title">Мой бот</div>
+    </div>
+
+    <div id="riskDisclaimerBlock" style="display:none; padding:16px;">
+      <div class="section-title">Предупреждение о рисках</div>
+      <div style="font-size:14px; line-height:1.5; opacity:0.85; margin-bottom:16px;">
+        Торговля криптовалютой связана с риском полной потери вложенных средств.
+        Используя автоматическую торговлю, вы действуете на свой страх и риск.
+        Разработчики не несут ответственности за финансовые потери, возникшие
+        в результате использования бота.
+      </div>
+      <label style="display:flex; align-items:center; gap:8px; margin-bottom:16px; font-size:14px;">
+        <input type="checkbox" id="riskCheckbox">
+        Я понимаю и принимаю условия использования
+      </label>
+      <button class="option-btn" style="width:100%;" id="acceptRiskBtn" onclick="acceptRiskDisclaimer()" disabled>Согласен, продолжить</button>
+    </div>
+
+    <div id="myBotMainBlock" style="display:none;">
+      <div class="section-title">Подключённые биржи</div>
+      <div id="exchangeKeysContainer" style="padding:0 16px;"></div>
+
+      <div class="section-title">Подписка</div>
+      <div id="subscriptionContainer" style="padding:0 16px;"></div>
+    </div>
+  </div>
+
+  <div id="exchangeKeyFormScreen" class="screen">
+    <div class="header">
+      <button class="back-btn" onclick="closeScreen('exchangeKeyFormScreen')"><i class="ti ti-arrow-left"></i></button>
+      <div class="detail-title" id="exchangeKeyFormTitle">Подключить биржу</div>
+    </div>
+    <div style="padding:16px;">
+      <div style="background:rgba(255,80,80,0.1); border:1px solid rgba(255,80,80,0.3); border-radius:10px; padding:12px; font-size:13px; line-height:1.4; margin-bottom:16px;">
+        Внимание: выдайте боту разрешение ТОЛЬКО на торговлю (Trade), БЕЗ права
+        на вывод средств (Withdraw). Мы не несём ответственности за неправильную
+        настройку разрешений на вашей бирже.
+      </div>
+      <input type="text" id="exchangeKeyInput" placeholder="API Key" style="width:100%; padding:12px; margin-bottom:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.05); color:inherit;">
+      <input type="text" id="exchangeSecretInput" placeholder="API Secret" style="width:100%; padding:12px; margin-bottom:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.05); color:inherit;">
+      <input type="text" id="exchangePassphraseInput" placeholder="API Passphrase (только для KuCoin)" style="width:100%; padding:12px; margin-bottom:16px; border-radius:8px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.05); color:inherit;">
+      <label style="display:flex; align-items:center; gap:8px; margin-bottom:16px; font-size:13px;">
+        <input type="checkbox" id="exchangeKeyConfirmCheckbox">
+        Я подтверждаю, что выдал разрешение только на торговлю
+      </label>
+      <button class="option-btn" style="width:100%;" id="saveExchangeKeyBtn" onclick="saveExchangeKey()" disabled>Сохранить</button>
+    </div>
   </div>
 
 <script>
@@ -1000,6 +1053,129 @@
       if (priceChartInstance) { priceChartInstance.destroy(); priceChartInstance = null; }
       if (chartRefreshInterval) { clearInterval(chartRefreshInterval); chartRefreshInterval = null; }
     }
+  }
+
+  const ALL_EXCHANGES = ["Binance", "Bybit", "OKX", "KuCoin", "Gate.io", "Bitget"];
+  let pendingExchangeKeyTarget = null;
+
+  async function openMyBot() {
+    document.getElementById("myBotScreen").classList.add("open");
+    try {
+      const resp = await fetch(`${API_BASE}/api/users/${TELEGRAM_ID}`);
+      const user = await resp.json();
+      if (user.risk_disclaimer_accepted_at) {
+        document.getElementById("riskDisclaimerBlock").style.display = "none";
+        document.getElementById("myBotMainBlock").style.display = "block";
+        loadExchangeKeys();
+        loadSubscriptionStatus();
+      } else {
+        document.getElementById("riskDisclaimerBlock").style.display = "block";
+        document.getElementById("myBotMainBlock").style.display = "none";
+      }
+    } catch (e) {}
+  }
+
+  document.addEventListener("change", (e) => {
+    if (e.target && e.target.id === "riskCheckbox") {
+      document.getElementById("acceptRiskBtn").disabled = !e.target.checked;
+    }
+    if (e.target && e.target.id === "exchangeKeyConfirmCheckbox") {
+      document.getElementById("saveExchangeKeyBtn").disabled = !e.target.checked;
+    }
+  });
+
+  async function acceptRiskDisclaimer() {
+    await fetch(`${API_BASE}/api/users/${TELEGRAM_ID}/accept-risk-disclaimer`, { method: "POST" });
+    openMyBot();
+  }
+
+  async function loadExchangeKeys() {
+    const resp = await fetch(`${API_BASE}/api/users/${TELEGRAM_ID}/exchange-keys`);
+    const data = await resp.json();
+    const connected = {};
+    (data.exchanges || []).forEach(e => { connected[e.exchange] = e.last_four; });
+
+    const container = document.getElementById("exchangeKeysContainer");
+    container.innerHTML = ALL_EXCHANGES.map(ex => {
+      const isConnected = connected[ex];
+      return `
+        <div class="trade" style="margin-bottom:8px;">
+          <span>${ex}</span>
+          ${isConnected
+            ? `<span style="color:var(--green,#26c281); font-size:13px;">✅ ...${isConnected} <a href="#" onclick="deleteExchangeKey('${ex}'); return false;" style="color:var(--red,#e5484d); margin-left:8px;">✕</a></span>`
+            : `<button class="option-btn" onclick="openExchangeKeyForm('${ex}')">Добавить ключ</button>`
+          }
+        </div>
+      `;
+    }).join("");
+  }
+
+  function openExchangeKeyForm(exchange) {
+    pendingExchangeKeyTarget = exchange;
+    document.getElementById("exchangeKeyFormTitle").textContent = `Подключить ${exchange}`;
+    document.getElementById("exchangeKeyInput").value = "";
+    document.getElementById("exchangeSecretInput").value = "";
+    document.getElementById("exchangePassphraseInput").value = "";
+    document.getElementById("exchangeKeyConfirmCheckbox").checked = false;
+    document.getElementById("saveExchangeKeyBtn").disabled = true;
+    document.getElementById("exchangeKeyFormScreen").classList.add("open");
+  }
+
+  async function saveExchangeKey() {
+    const apiKey = document.getElementById("exchangeKeyInput").value.trim();
+    const apiSecret = document.getElementById("exchangeSecretInput").value.trim();
+    const apiPassphrase = document.getElementById("exchangePassphraseInput").value.trim();
+    if (!apiKey || !apiSecret) return;
+
+    const params = new URLSearchParams({ exchange: pendingExchangeKeyTarget, api_key: apiKey, api_secret: apiSecret });
+    if (apiPassphrase) params.append("api_passphrase", apiPassphrase);
+
+    const resp = await fetch(`${API_BASE}/api/users/${TELEGRAM_ID}/exchange-keys?${params.toString()}`, { method: "POST" });
+    if (resp.ok) {
+      closeScreen("exchangeKeyFormScreen");
+      loadExchangeKeys();
+    }
+  }
+
+  async function deleteExchangeKey(exchange) {
+    await fetch(`${API_BASE}/api/users/${TELEGRAM_ID}/exchange-keys/${exchange}`, { method: "DELETE" });
+    loadExchangeKeys();
+  }
+
+  async function loadSubscriptionStatus() {
+    const statusResp = await fetch(`${API_BASE}/api/users/${TELEGRAM_ID}/subscription-status`);
+    const status = await statusResp.json();
+    const tiersResp = await fetch(`${API_BASE}/api/subscription-tiers`);
+    const tiersData = await tiersResp.json();
+
+    const container = document.getElementById("subscriptionContainer");
+
+    if (status.status === "pending") {
+      container.innerHTML = `
+        <div class="trade" style="flex-direction:column; align-items:flex-start; gap:6px;">
+          <span>Тариф ${status.tier}: ожидает оплату</span>
+          <span style="font-size:13px; opacity:0.8;">Переведите РОВНО ${status.payment_amount_usdt} USDT (сеть TON) на:</span>
+          <span style="font-size:12px; word-break:break-all; opacity:0.6;">${tiersData.payment_address}</span>
+        </div>
+      `;
+      return;
+    }
+    if (status.status === "active") {
+      container.innerHTML = `<div class="trade"><span>Активен тариф: ${status.tier}</span><span style="color:var(--green,#26c281);">✅</span></div>`;
+      return;
+    }
+
+    container.innerHTML = tiersData.tiers.map(t => `
+      <div class="trade">
+        <span>${t.tier} — ${t.price_usdt} USDT/мес</span>
+        <button class="option-btn" onclick="subscribeTier('${t.tier}')">Оформить</button>
+      </div>
+    `).join("");
+  }
+
+  async function subscribeTier(tier) {
+    const resp = await fetch(`${API_BASE}/api/users/${TELEGRAM_ID}/subscribe?tier=${tier}`, { method: "POST" });
+    if (resp.ok) loadSubscriptionStatus();
   }
 
   function renderWatchlist() {
