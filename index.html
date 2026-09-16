@@ -1085,18 +1085,13 @@
   });
 
   async function acceptRiskDisclaimer() {
-    alert("TELEGRAM_ID = " + TELEGRAM_ID);
     if (!document.getElementById("riskCheckbox").checked) {
       alert("Сначала поставьте галочку согласия");
       return;
     }
     try {
-      const resp = await fetch(`${API_BASE}/api/users/${TELEGRAM_ID}/accept-risk-disclaimer`, { method: "POST" });
-      const data = await resp.json();
-      alert("Ответ сервера: " + resp.status + " " + JSON.stringify(data));
-    } catch (err) {
-      alert("ОШИБКА СЕТИ: " + err.message);
-    }
+      await fetch(`${API_BASE}/api/users/${TELEGRAM_ID}/accept-risk-disclaimer`, { method: "POST" });
+    } catch (err) {}
     openMyBot();
   }
 
