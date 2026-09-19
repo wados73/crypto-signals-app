@@ -706,8 +706,10 @@
         <div class="row"><span class="label">Время</span><span>${new Date(e.created_at).toLocaleString('ru-RU')}</span></div>
       </div>
     <div id="eventPriceChart" style="padding:0 16px;"><div class="empty-state">Загрузка графика...</div></div>
+        <div id="symbolFullDetail" style="padding:0 16px; font-size:16px;"></div>
     `;
     loadEventPriceChart(e.symbol);
+    loadSymbolFullDetail(e.symbol);
     if (window._eventChartInterval) clearInterval(window._eventChartInterval);
     window._eventChartInterval = setInterval(() => loadEventPriceChart(e.symbol), 30000);
   }
@@ -780,31 +782,83 @@
         if (chartEl.isConnected) chart.applyOptions({ width: chartEl.clientWidth });
       });
 
-      // Дополнительно: показываем регулярность появления возможностей
-      try {
-        const topResp = await fetch(`${API_BASE}/api/arbitrage/top-symbols?limit=30`);
-        const topData = await topResp.json();
-        const symbolStats = (topData.top_symbols || []).find(s => s.symbol === symbol);
-        if (symbolStats && symbolStats.avg_gap_minutes) {
-          const cv = symbolStats.regularity_cv;
-          const regularityLabel = cv === null ? "недостаточно данных" : cv < 0.3 ? "очень регулярно" : cv < 0.7 ? "умеренно регулярно" : "хаотично";
-          const regularityColor = cv === null ? "var(--text-dim)" : cv < 0.3 ? "#2ecc71" : cv < 0.7 ? "#f39c12" : "#e74c3c";
-          container.innerHTML += `
-            <div class="card" style="margin-top:10px; padding:12px;">
-              <div class="label" style="margin-bottom:8px;">Ритмичность появления возможностей</div>
-              <div style="display:flex; justify-content:space-between; font-size:13px;">
-                <span>Средний интервал: <b>${symbolStats.avg_gap_minutes.toFixed(0)} мин</b></span>
-                <span style="color:${regularityColor};">${regularityLabel}</span>
+    } catch (err) {
+      container.innerHTML = '<div class="empty-state">Не удалось загрузить график</div>';
+    }
+  }
+
+  async function loadSymbolFullDetail(symbol) {
+    const container = document.getElementById("symbolFullDetail");
+    try {
+      const resp = await fetch(`${API_BASE}/api/arbitrage/symbol-detail/${symbol}`);
+      if (!resp.ok) { container.innerHTML = ""; return; }
+      const d = await resp.json();
+
+      const cv = d.regularity_cv;
+      const regularityLabel = cv === null || cv === undefined ? "недостаточно данных" : cv < 0.3 ? "очень регулярно" : cv < 0.7 ? "умеренно регулярно" : "хаотично";
+      const regularityColor = cv === null || cv === undefined ? "var(--text-dim)" : cv < 0.3 ? "#2ecc71" : cv < 0.7 ? "#f39c12" : "#e74c3c";
+
+      const statsHtml = `
+        <div class="card" style="margin-top:10px; padding:14px;">
+          <div class="label" style="margin-bottom:10px; font-size:15px;">Накопленная статистика</div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+            <span>Сделок: <b>${d.trades}</b></span>
+            <span style="color:#2ecc71;">Winrate: <b>${d.win_rate_pct}%</b></span>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+            <span>Средняя прибыль</span>
+            <span style="color:#2ecc71; font-weight:700;">${d.avg_profit_pct}%</span>
+          </div>
+          ${d.most_common_pair ? `
+          <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+            <span>Частая пара бирж</span>
+            <span><b>${d.most_common_pair}</b> (${(d.most_common_pair_share*100).toFixed(0)}%)</span>
+          </div>` : ''}
+          <div style="display:flex; justify-content:space-between;">
+            <span>Частота: <b>${(d.frequency_per_hour||0).toFixed(2)}/час</b></span>
+            <span style="color:${regularityColor};">${regularityLabel}</span>
+          </div>
+        </div>
+      `;
+
+      let liveHtml = '';
+      if (d.live_spread_pct !== undefined) {
+        liveHtml += `
+        <div class="card" style="margin-top:10px; padding:14px;">
+          <div class="label" style="margin-bottom:10px; font-size:15px;">Живой спред прямо сейчас</div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <span style="font-size:22px; font-weight:700; color:#9b59b6;">${d.live_spread_pct}%</span>
+            <span style="font-size:13px; color:var(--text-dim); align-self:center;">${d.live_cheapest_exchange} → ${d.live_priciest_exchange}</span>
+          </div>
+        </div>`;
+      }
+
+      if (d.live_orderbooks && Object.keys(d.live_orderbooks).length > 0) {
+        const rowsHtml = Object.entries(d.live_orderbooks).map(([ex, ob]) => {
+          const info = exchangeInfo(ex);
+          return `
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.06);">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <img src="${info.iconUrl}" style="width:20px;height:20px;border-radius:50%;" onerror="this.style.display='none'">
+                <span style="font-weight:600;">${ex}</span>
               </div>
-              <div style="font-size:11px; color:var(--text-dim); margin-top:4px;">
-                ${symbolStats.frequency_per_hour.toFixed(2)} возможностей/час · стабильность направления ${(symbolStats.stability_score*100).toFixed(0)}%
+              <div style="text-align:right; font-size:13px;">
+                <div>bid ${ob.best_bid} / ask ${ob.best_ask}</div>
+                <div style="color:var(--text-dim);">глубина: $${ob.bid_depth_usd.toFixed(0)} / $${ob.ask_depth_usd.toFixed(0)}</div>
               </div>
             </div>
           `;
-        }
-      } catch (e) {}
-    } catch (err) {
-      container.innerHTML = '<div class="empty-state">Не удалось загрузить график</div>';
+        }).join('');
+        liveHtml += `
+        <div class="card" style="margin-top:10px; padding:14px;">
+          <div class="label" style="margin-bottom:6px; font-size:15px;">Живая глубина стакана</div>
+          ${rowsHtml}
+        </div>`;
+      }
+
+      container.innerHTML = statsHtml + liveHtml;
+    } catch (e) {
+      container.innerHTML = '';
     }
   }
 
