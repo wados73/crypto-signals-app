@@ -739,10 +739,7 @@
       container.innerHTML = `
         <div class="label" style="margin:12px 0 6px;">Динамика спреда (последние ${events.length} событий)</div>
         <div style="display:flex; gap:14px; margin-bottom:10px;">${legendHtml}</div>
-        <div style="display:flex; gap:6px; margin-bottom:8px;">
-          <button id="chartModeLine" class="chart-mode-btn active" onclick="setChartMode('line')" style="padding:4px 12px; border-radius:8px; border:none; font-size:12px; background:var(--accent, #6c5ce7); color:#fff;">Линия</button>
-          <button id="chartModeCandle" class="chart-mode-btn" onclick="setChartMode('candle')" style="padding:4px 12px; border-radius:8px; border:none; font-size:12px; background:rgba(255,255,255,0.08); color:var(--text-dim);">Свечи</button>
-        </div>
+
         <div id="lwChartContainer" style="width:100%; height:220px; border-radius:12px; overflow:hidden;"></div>
       `;
 
@@ -771,51 +768,9 @@
         lineData.push({ time: t, value: ev.diff_pct });
       });
 
-      // Данные для свечей — группируем события по часу: open/high/low/close спреда
-      const buckets = {};
-      events.forEach(ev => {
-        const d = new Date(ev.created_at);
-        d.setMinutes(0, 0, 0);
-        const bucketTime = Math.floor(d.getTime() / 1000);
-        if (!buckets[bucketTime]) buckets[bucketTime] = [];
-        buckets[bucketTime].push(ev.diff_pct);
-      });
-      const candleData = Object.keys(buckets).sort((a, b) => a - b).map(t => {
-        const vals = buckets[t];
-        return {
-          time: parseInt(t),
-          open: vals[0],
-          high: Math.max(...vals),
-          low: Math.min(...vals),
-          close: vals[vals.length - 1],
-        };
-      });
-
-      window._lwLineData = lineData;
-      window._lwCandleData = candleData;
-      window._lwSeries = null;
-
-      window.setChartMode = function(mode) {
-        if (window._lwSeries) window._lwChart.removeSeries(window._lwSeries);
-        document.getElementById("chartModeLine").style.background = mode === 'line' ? 'var(--accent, #6c5ce7)' : 'rgba(255,255,255,0.08)';
-        document.getElementById("chartModeLine").style.color = mode === 'line' ? '#fff' : 'var(--text-dim)';
-        document.getElementById("chartModeCandle").style.background = mode === 'candle' ? 'var(--accent, #6c5ce7)' : 'rgba(255,255,255,0.08)';
-        document.getElementById("chartModeCandle").style.color = mode === 'candle' ? '#fff' : 'var(--text-dim)';
-
-        if (mode === 'line') {
-          window._lwSeries = window._lwChart.addLineSeries({ color: '#6c5ce7', lineWidth: 2 });
-          window._lwSeries.setData(window._lwLineData);
-        } else {
-          window._lwSeries = window._lwChart.addCandlestickSeries({
-            upColor: '#26c281', downColor: '#e5484d',
-            borderUpColor: '#26c281', borderDownColor: '#e5484d',
-            wickUpColor: '#26c281', wickDownColor: '#e5484d',
-          });
-          window._lwSeries.setData(window._lwCandleData);
-        }
+        window._lwSeries = window._lwChart.addLineSeries({ color: '#6c5ce7', lineWidth: 2 });
+        window._lwSeries.setData(lineData);
         window._lwChart.timeScale().fitContent();
-      };
-      setChartMode('line');
 
       window.addEventListener('resize', () => {
         if (chartEl.isConnected) window._lwChart.applyOptions({ width: chartEl.clientWidth });
