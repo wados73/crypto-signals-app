@@ -34,6 +34,7 @@
   .quick-nav-btn { flex: 1; background: var(--card-bg); border: none; border-radius: 22px; padding: 24px 14px; color: var(--text); font-size: 13px; font-weight: 600; text-align: center; }
   .quick-nav-btn .icon-badge { width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; font-size: 24px; }
   .quick-nav-btn.whale .icon-badge { background: rgba(55,138,221,0.15); color: #378ADD; }
+  .quick-nav-btn.volume-mcap .icon-badge { background: rgba(230,126,34,0.15); color: #E67E22; }
   .quick-nav-btn.new-listing .icon-badge { background: rgba(29,158,117,0.15); color: #1D9E75; }
   .quick-nav-btn.arbitrage .icon-badge { background: rgba(186,117,23,0.15); color: #BA7517; }
   .quick-nav-btn .count { display: block; font-size: 11px; color: var(--text-dim); font-weight: 400; margin-top: 6px; }
@@ -156,6 +157,7 @@
   </div>
   <div class="quick-nav-row">
     <button class="quick-nav-btn whale" onclick="openWhaleActivity()"><span class="icon-badge"><i class="ti ti-fish"></i></span>Киты<span class="count" id="whaleCount">···</span></button>
+    <button class="quick-nav-btn volume-mcap" onclick="openVolumeMcapActivity()"><span class="icon-badge"><i class="ti ti-trending-up"></i></span>Пампы<span class="count" id="volumeMcapCount">···</span></button>
     <button class="quick-nav-btn new-listing" onclick="openNewListings()"><span class="icon-badge"><i class="ti ti-sparkles"></i></span>Новые монеты<span class="count" id="newListingCount">···</span></button>
     <button class="quick-nav-btn arbitrage" onclick="openArbitrage()"><span class="icon-badge"><i class="ti ti-arrows-exchange"></i></span>Арбитраж<span class="count" id="arbitrageCount">···</span></button>
     <button class="quick-nav-btn top-movers" onclick="openTopMoversScreen()"><span class="icon-badge"><i class="ti ti-chart-bar"></i></span>Топ движения<span class="count" id="topMoversCount">···</span></button>
@@ -242,6 +244,14 @@
       <button data-filter="whale_wallet" onclick="setWhaleFilter('whale_wallet', this)">Кошельки</button>
     </div>
     <div id="whaleList"><div class="empty-state">Загрузка...</div></div>
+  </div>
+
+  <div id="volumeMcapScreen" class="screen">
+    <div class="header">
+      <button class="back-btn" onclick="closeScreen('volumeMcapScreen')"><i class="ti ti-arrow-left"></i></button>
+      <div class="detail-title"><i class="ti ti-trending-up" style="margin-right:6px;"></i>Аномальный объём/капа</div>
+    </div>
+    <div id="volumeMcapList"><div class="empty-state">Загрузка...</div></div>
   </div>
 
   <div id="newListingsScreen" class="screen">
@@ -955,6 +965,41 @@
       const idx = _whaleSignalsCache.indexOf(s);
       loadSectorBadgeById(s.symbol, `sector-whale-${idx}`);
     });
+  }
+
+  let _volumeMcapCache = [];
+
+  function openVolumeMcapActivity() {
+    document.getElementById("volumeMcapScreen").classList.add("open");
+    loadVolumeMcapActivity();
+  }
+
+  async function loadVolumeMcapActivity() {
+    try {
+      const resp = await fetch(`${API_BASE}/api/signals/volume-mcap-activity?limit=50`);
+      const data = await resp.json();
+      _volumeMcapCache = data.signals || [];
+      renderVolumeMcapFeed();
+    } catch (e) {
+      document.getElementById("volumeMcapList").innerHTML = '<div class="empty-state">Не удалось загрузить</div>';
+    }
+  }
+
+  function renderVolumeMcapFeed() {
+    const el = document.getElementById("volumeMcapList");
+    if (_volumeMcapCache.length === 0) {
+      el.innerHTML = '<div class="empty-state">Сигналов пока нет</div>';
+      return;
+    }
+    el.innerHTML = _volumeMcapCache.map((s) => `
+      <div class="feed-item">
+        <div class="top-row">
+          <span class="symbol">${s.direction === 'up' ? '▲' : '▼'} ${s.symbol}</span>
+          <span class="time">${timeAgo(s.created_at)}</span>
+        </div>
+        <div class="detail ${s.direction}">${s.detail}</div>
+      </div>
+    `).join("");
   }
 
   function openNewListings() {
@@ -1860,26 +1905,30 @@
 
   async function loadNavCounts() {
     try {
-      const [whaleResp, newResp, arbResp, topResp] = await Promise.all([
+      const [whaleResp, newResp, arbResp, topResp, mcapResp] = await Promise.all([
         fetch(`${API_BASE}/api/signals/whale-activity?limit=1`),
         fetch(`${API_BASE}/api/coins/new-listings?limit=1`),
         fetch(`${API_BASE}/api/arbitrage/events?limit=1`),
         fetch(`${API_BASE}/api/coins/top-movers`),
+        fetch(`${API_BASE}/api/signals/volume-mcap-activity?limit=1`),
       ]);
       const whaleData = await whaleResp.json();
       const newData = await newResp.json();
       const arbData = await arbResp.json();
       const topData = await topResp.json();
+      const mcapData = await mcapResp.json();
       document.getElementById("whaleCount").textContent = `${whaleData.count_24h ?? 0} за 24ч`;
       document.getElementById("newListingCount").textContent = `${newData.count_24h ?? 0} за 24ч`;
       document.getElementById("arbitrageCount").textContent = `${arbData.count_24h ?? 0} за 24ч`;
       const bestMover = (topData.gainers && topData.gainers[0]) || null;
       document.getElementById("topMoversCount").textContent = bestMover ? `лидер +${bestMover.price_change_24h_pct.toFixed(1)}%` : "";
+      document.getElementById("volumeMcapCount").textContent = `${mcapData.count_24h ?? 0} за 24ч`;
     } catch (e) {
       document.getElementById("whaleCount").textContent = "";
       document.getElementById("newListingCount").textContent = "";
       document.getElementById("arbitrageCount").textContent = "";
       document.getElementById("topMoversCount").textContent = "";
+      document.getElementById("volumeMcapCount").textContent = "";
     }
   }
 
