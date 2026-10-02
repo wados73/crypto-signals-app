@@ -158,6 +158,7 @@
   <div class="quick-nav-row">
     <button class="quick-nav-btn whale" onclick="openWhaleActivity()"><span class="icon-badge"><i class="ti ti-fish"></i></span>Киты<span class="count" id="whaleCount">···</span></button>
     <button class="quick-nav-btn volume-mcap" onclick="openVolumeMcapActivity()"><span class="icon-badge"><i class="ti ti-trending-up"></i></span>Пампы<span class="count" id="volumeMcapCount">···</span></button>
+    <button class="quick-nav-btn catalyst" onclick="openCatalystMonitor()"><span class="icon-badge"><i class="ti ti-target-arrow"></i></span>Катализатор<span class="count" id="catalystCount">···</span></button>
     <button class="quick-nav-btn new-listing" onclick="openNewListings()"><span class="icon-badge"><i class="ti ti-sparkles"></i></span>Новые монеты<span class="count" id="newListingCount">···</span></button>
     <button class="quick-nav-btn arbitrage" onclick="openArbitrage()"><span class="icon-badge"><i class="ti ti-arrows-exchange"></i></span>Арбитраж<span class="count" id="arbitrageCount">···</span></button>
     <button class="quick-nav-btn top-movers" onclick="openTopMoversScreen()"><span class="icon-badge"><i class="ti ti-chart-bar"></i></span>Топ движения<span class="count" id="topMoversCount">···</span></button>
@@ -252,6 +253,16 @@
       <div class="detail-title"><i class="ti ti-trending-up" style="margin-right:6px;"></i>Аномальный объём/капа</div>
     </div>
     <div id="volumeMcapList"><div class="empty-state">Загрузка...</div></div>
+  </div>
+
+  
+  <div id="catalystScreen" class="screen">
+    <div class="header">
+      <button class="back-btn" onclick="closeScreen('catalystScreen')"><i class="ti ti-arrow-left"></i></button>
+      <div class="detail-title"><i class="ti ti-target-arrow" style="margin-right:6px;"></i>Монитор катализаторов</div>
+    </div>
+    <div id="catalystStats" style="margin:12px 16px; padding:12px 14px; border-radius:12px; background:rgba(255,255,255,0.05); font-size:13px;"></div>
+    <div id="catalystList"><div class="empty-state">Загрузка...</div></div>
   </div>
 
   <div id="newListingsScreen" class="screen">
@@ -1000,6 +1011,64 @@
         <div class="detail ${s.direction}">${s.detail}</div>
       </div>
     `).join("");
+  }
+
+    let _catalystCache = [];
+
+  function openCatalystMonitor() {
+    document.getElementById("catalystScreen").classList.add("open");
+    loadCatalystMonitor();
+  }
+
+  async function loadCatalystMonitor() {
+    try {
+      const resp = await fetch(`${API_BASE}/api/signals/catalyst-monitor?limit=50`);
+      const data = await resp.json();
+      _catalystCache = data.triggers || [];
+      renderCatalystStats(data);
+      renderCatalystFeed();
+    } catch (e) {
+      document.getElementById("catalystList").innerHTML = '<div class="empty-state">Не удалось загрузить</div>';
+    }
+  }
+
+  function renderCatalystStats(data) {
+    const el = document.getElementById("catalystStats");
+    const wr = data.win_rate_pct;
+    el.innerHTML = `
+      <div style="margin-bottom:8px; color:var(--text-dim);">Экспериментальный монитор: проверяем, насколько часто divergence/macd сигнал реально приводит к росту цены на 15%+ в ближайшие 24ч. Деньгами не торгует, только собирает статистику.</div>
+      <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+        <span>Проверено: <b>${data.total_resolved}</b></span>
+        <span style="color:#2ecc71;">Сбылось: <b>${data.hits}</b></span>
+        <span style="color:#e74c3c;">Не сбылось: <b>${data.misses}</b></span>
+      </div>
+      <div style="display:flex; justify-content:space-between;">
+        <span>Винрейт: <b>${wr !== null && wr !== undefined ? wr + '%' : '—'}</b></span>
+        <span>В ожидании: <b>${data.pending_count}</b></span>
+      </div>
+    `;
+  }
+
+  function renderCatalystFeed() {
+    const el = document.getElementById("catalystList");
+    if (_catalystCache.length === 0) {
+      el.innerHTML = '<div class="empty-state">Срабатываний пока нет</div>';
+      return;
+    }
+    el.innerHTML = _catalystCache.map((t) => {
+      const statusLabel = t.status === "hit" ? "✅ сбылось" : t.status === "miss" ? "❌ не сбылось" : "⏳ ожидание";
+      const statusColor = t.status === "hit" ? "#2ecc71" : t.status === "miss" ? "#e74c3c" : "#f39c12";
+      const moveText = (t.max_pct_move !== null && t.max_pct_move !== undefined) ? `макс. движение: ${t.max_pct_move}%` : '';
+      return `
+      <div class="feed-item">
+        <div class="top-row">
+          <span class="symbol">${t.symbol}</span>
+          <span class="time">${timeAgo(t.created_at)}</span>
+        </div>
+        <div class="detail">${t.source} &middot; <span style="color:${statusColor};">${statusLabel}</span>${moveText ? ' &middot; ' + moveText : ''}</div>
+      </div>
+    `;
+    }).join("");
   }
 
   function openNewListings() {
@@ -1905,12 +1974,13 @@
 
   async function loadNavCounts() {
     try {
-      const [whaleResp, newResp, arbResp, topResp, mcapResp] = await Promise.all([
+      const [whaleResp, newResp, arbResp, topResp, mcapResp, catResp] = await Promise.all([
         fetch(`${API_BASE}/api/signals/whale-activity?limit=1`),
         fetch(`${API_BASE}/api/coins/new-listings?limit=1`),
         fetch(`${API_BASE}/api/arbitrage/events?limit=1`),
         fetch(`${API_BASE}/api/coins/top-movers`),
         fetch(`${API_BASE}/api/signals/volume-mcap-activity?limit=1`),
+        fetch(`${API_BASE}/api/signals/catalyst-monitor?limit=1`),
       ]);
       const whaleData = await whaleResp.json();
       const newData = await newResp.json();
@@ -1923,12 +1993,15 @@
       const bestMover = (topData.gainers && topData.gainers[0]) || null;
       document.getElementById("topMoversCount").textContent = bestMover ? `лидер +${bestMover.price_change_24h_pct.toFixed(1)}%` : "";
       document.getElementById("volumeMcapCount").textContent = `${mcapData.count_24h ?? 0} за 24ч`;
+      const catData = await catResp.json();
+      document.getElementById("catalystCount").textContent = catData.win_rate_pct !== null && catData.win_rate_pct !== undefined ? `винрейт ${catData.win_rate_pct}%` : `${catData.pending_count ?? 0} в ожид.`;
     } catch (e) {
       document.getElementById("whaleCount").textContent = "";
       document.getElementById("newListingCount").textContent = "";
       document.getElementById("arbitrageCount").textContent = "";
       document.getElementById("topMoversCount").textContent = "";
       document.getElementById("volumeMcapCount").textContent = "";
+      document.getElementById("catalystCount").textContent = "";
     }
   }
 
