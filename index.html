@@ -702,6 +702,7 @@
           <div class="detail" style="color: var(--text-dim); display:flex; align-items:center; gap:6px;">
             <img src="https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://${exchangeInfo(e.exchange_high).domain}&size=64" style="width:14px;height:14px;border-radius:50%;" onerror="this.style.display='none'">${e.exchange_high} $${formatPrice(e.price_high)}
           </div>
+          ${e.verdict === 'real' ? `<div style="margin-top:4px; font-size:12px; font-weight:600; color:#2ecc71;">✅ Реально (реальный спред ${e.real_diff_pct}%)</div>` : e.verdict === 'fake' ? `<div style="margin-top:4px; font-size:12px; font-weight:600; color:#e74c3c;">❌ Фейк${e.verdict_reasons ? ': ' + e.verdict_reasons : ''}</div>` : `<div style="margin-top:4px; font-size:12px; color:var(--text-dim);">⏳ проверяется...</div>`}
           <div class="sector-badge" id="sector-arb-${idx}" style="display:none;"></div>
         </div>
       `).join("");
