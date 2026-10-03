@@ -262,6 +262,12 @@
       <div class="detail-title"><i class="ti ti-target-arrow" style="margin-right:6px;"></i>Монитор катализаторов</div>
     </div>
     <div id="catalystStats" style="margin:12px 16px; padding:12px 14px; border-radius:12px; background:rgba(255,255,255,0.05); font-size:13px;"></div>
+    <div class="timeframe-toggle" id="catalystFilterToggle">
+      <button data-filter="all" class="selected" onclick="setCatalystFilter('all', this)">Все</button>
+      <button data-filter="pending" onclick="setCatalystFilter('pending', this)">В ожидании</button>
+      <button data-filter="hit" onclick="setCatalystFilter('hit', this)">Сбылось</button>
+      <button data-filter="miss" onclick="setCatalystFilter('miss', this)">Не сбылось</button>
+    </div>
     <div id="catalystList"><div class="empty-state">Загрузка...</div></div>
   </div>
 
@@ -1014,15 +1020,23 @@
   }
 
     let _catalystCache = [];
+  let _catalystFilterActive = "all";
 
   function openCatalystMonitor() {
     document.getElementById("catalystScreen").classList.add("open");
     loadCatalystMonitor();
   }
 
+  function setCatalystFilter(filter, btnEl) {
+    _catalystFilterActive = filter;
+    document.querySelectorAll('#catalystFilterToggle button').forEach(b => b.classList.remove('selected'));
+    btnEl.classList.add('selected');
+    loadCatalystMonitor();
+  }
+
   async function loadCatalystMonitor() {
     try {
-      const resp = await fetch(`${API_BASE}/api/signals/catalyst-monitor?limit=50`);
+      const resp = await fetch(`${API_BASE}/api/signals/catalyst-monitor?limit=50&status=${_catalystFilterActive}`);
       const data = await resp.json();
       _catalystCache = data.triggers || [];
       renderCatalystStats(data);
