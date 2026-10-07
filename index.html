@@ -145,6 +145,13 @@
   .exchange-icon-badge .name { font-weight: 600; font-size: 14px; }
   .watchlist-item { display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); padding: 10px 14px; border-radius: 12px; margin-bottom: 6px; }
   .remove-btn { background: transparent; border: none; color: var(--red); font-size: 18px; }
+
+  .regime-strip{margin:0 14px 10px;padding:10px 14px;border-radius:12px;background:var(--card-bg);display:none;align-items:center;justify-content:space-between;gap:10px;font-size:14px;cursor:pointer;border-left:4px solid #888}
+  .regime-strip.bull{border-left-color:#34c759}
+  .regime-strip.bear{border-left-color:#ff3b30}
+  .regime-strip.sideways{border-left-color:#f0b90b}
+  .regime-strip .rs-main{font-weight:600}
+  .regime-strip .rs-sub{font-size:12px;opacity:.7}
 </style>
 <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
 </head>
@@ -155,6 +162,7 @@
     <button class="icon-btn" onclick="openMyBot()"><i class="ti ti-robot"></i></button>
     <button class="icon-btn" onclick="openSettings()"><i class="ti ti-settings"></i></button>
   </div>
+  <div class="regime-strip" id="regimeStrip" onclick="showRegimeInfo()"><div class="rs-main" id="regimeMain"></div><div class="rs-sub" id="regimeSub"></div></div>
   <div class="quick-nav-row">
     <button class="quick-nav-btn whale" onclick="openWhaleActivity()"><span class="icon-badge"><i class="ti ti-fish"></i></span>Киты<span class="count" id="whaleCount">···</span></button>
     <button class="quick-nav-btn volume-mcap" onclick="openVolumeMcapActivity()"><span class="icon-badge"><i class="ti ti-trending-up"></i></span>Пампы<span class="count" id="volumeMcapCount">···</span></button>
@@ -2027,6 +2035,30 @@
     setInterval(loadActiveSignals, 30000);
     setInterval(loadNavCounts, 60000);
   })();
+
+  async function loadMarketRegime() {
+    try {
+      const r = await fetch(API_BASE + "/api/market/regime");
+      const d = await r.json();
+      const el = document.getElementById("regimeStrip");
+      if (!d || !d.regime) { el.style.display = "none"; return; }
+      window._regime = d;
+      const L = {bull: "🟢 Бычий", bear: "🔴 Медвежий", sideways: "🟡 Боковик"};
+      el.className = "regime-strip " + d.regime;
+      el.style.display = "flex";
+      document.getElementById("regimeMain").textContent = "Рынок: " + (L[d.regime] || d.regime);
+      const f = v => (v >= 0 ? "+" : "") + v + "%";
+      document.getElementById("regimeSub").textContent = "BTC 7д " + f(d.change_7d_pct) + " · 30д " + f(d.change_30d_pct);
+    } catch (e) {}
+  }
+  function showRegimeInfo() {
+    const d = window._regime;
+    if (!d) return;
+    const t = "Режим рынка по BTC (дневные свечи)\n\n🟢 Бычий: цена выше SMA50, а SMA50 выше SMA200\n🔴 Медвежий: цена ниже SMA50, а SMA50 ниже SMA200\n🟡 Боковик: всё остальное\n\nBTC: " + d.price + "\nSMA50: " + d.sma50 + "\nSMA200: " + d.sma200 + "\n\nРежим запаздывает: это фон, а не сигнал входа.";
+    try { Telegram.WebApp.showAlert(t); } catch (e) { alert(t); }
+  }
+  loadMarketRegime();
+  setInterval(loadMarketRegime, 600000);
 </script>
 </body>
 </html>
