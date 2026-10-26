@@ -221,6 +221,9 @@
     <div class="section-title">Рынок</div>
     <div id="marketDataSection"></div>
 
+    <div class="section-title">Досье</div>
+    <div id="dossierSection"><div class="empty-state">Загрузка...</div></div>
+
     <div class="section-title">Новости</div>
     <div id="newsSection"><div class="empty-state">Загрузка...</div></div>
 
@@ -1571,6 +1574,43 @@
     renderCoins(data.coins.map(c => ({...c, direction: 'neutral', signal_count: 0, triggered_at: new Date().toISOString()})));
   });
 
+  const DOSSIER_API = "https://wadcrypto.duckdns.org";
+  function dEsc(x) { return String(x == null ? "" : x).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c])); }
+  async function loadDossier(symbol) {
+    const el = document.getElementById("dossierSection");
+    if (!el) return;
+    el.innerHTML = `<div class="empty-state">Загрузка...</div>`;
+    try {
+      const r = await fetch(`${DOSSIER_API}/api/coin/${symbol}/dossier`);
+      if (currentDetailSymbol !== symbol) return;
+      if (r.status === 404) { el.innerHTML = `<div class="empty-state">Досье ещё не собрано</div>`; return; }
+      renderDossier(await r.json());
+    } catch (e) {
+      el.innerHTML = `<div class="empty-state">Досье недоступно</div>`;
+    }
+  }
+  function renderDossier(d) {
+    const el = document.getElementById("dossierSection");
+    const v = d.verdict || {};
+    const link = u => /^https?:\/\//.test(u || "") ? ` · <a href="${dEsc(u)}" target="_blank" rel="noopener">источник</a>` : "";
+    const item = (a, b, c) => `<div class="signal-item"><div class="src">${dEsc(a)}</div><div class="detail">${dEsc(b)}</div>${c ? `<div class="time">${c}</div>` : ""}</div>`;
+    let h = `<div class="levels-box"><div class="row"><span class="label">Риск</span><span>${dEsc(v.risk || "—")}</span></div></div>`;
+    if (v.summary) h += item("Вердикт", v.summary);
+    if (v.who) h += item("Кто двигает", v.who);
+    if (v.how) h += item("Как вести себя", v.how);
+    (d.facts || []).forEach(f => { h += item(f.t, f.v, `${dEsc(f.d || "")} · достоверность: ${dEsc(f.c || "—")}${link(f.src)}`); });
+    if ((d.watch || []).length) {
+      h += `<div class="empty-state" style="margin-top:10px;text-align:left">Что отслеживаем</div>`;
+      d.watch.forEach(w => { h += item("Следим", w.what, dEsc(w.date || "")); });
+    }
+    if ((d.timeline || []).length) {
+      h += `<div class="empty-state" style="margin-top:10px;text-align:left">Лента событий</div>`;
+      d.timeline.forEach(t => { h += item(t.d, t.e); });
+    }
+    h += `<div class="empty-state" style="margin-top:10px">Обновлено: ${dEsc(new Date(d.updated).toLocaleDateString("ru-RU"))}</div>`;
+    el.innerHTML = h;
+  }
+
   async function openCoinDetail(symbol) {
     tg.HapticFeedback.impactOccurred("light");
     currentDetailSymbol = symbol;
@@ -1612,6 +1652,7 @@
     await loadKlines(symbol);
     renderChart();
     loadNews(symbol);
+    loadDossier(symbol);
     loadMarketData(symbol);
     loadExchanges(symbol);
 
