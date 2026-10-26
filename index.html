@@ -172,10 +172,20 @@
     <button class="quick-nav-btn top-movers" onclick="openTopMoversScreen()"><span class="icon-badge"><i class="ti ti-chart-bar"></i></span>Топ движения<span class="count" id="topMoversCount">···</span></button>
   </div>
 
+  <div class="quick-nav-row"><button class="quick-nav-btn" onclick="openDossierList()"><span class="icon-badge"><i class="ti ti-file-text"></i></span>Досье<span class="count" id="dossierCount">···</span></button></div>
+
   <div class="grid" id="coinsGrid">
     <div class="empty-state">Загрузка сигналов...</div>
   </div>
   <button class="option-btn" style="width:100%; margin-top:10px; padding:14px;" onclick="openAllSignals()">Смотреть больше</button>
+
+  <div id="dossierListScreen" class="screen">
+    <div class="header">
+      <button class="back-btn" onclick="closeScreen('dossierListScreen')"><i class="ti ti-arrow-left"></i></button>
+      <div class="detail-title">Досье</div>
+    </div>
+    <div id="dossierList" style="padding:0 16px;"><div class="empty-state">Загрузка...</div></div>
+  </div>
 
   <div id="allSignalsScreen" class="screen">
     <div class="header">
@@ -1611,6 +1621,34 @@
     el.innerHTML = h;
   }
 
+  async function loadDossierCount() {
+    const c = document.getElementById("dossierCount");
+    try {
+      const r = await fetch(`${DOSSIER_API}/api/dossiers`);
+      const d = await r.json();
+      c.textContent = d.length;
+    } catch (e) { c.textContent = "–"; }
+  }
+  async function openDossierList() {
+    tg.HapticFeedback.impactOccurred("light");
+    document.getElementById("dossierListScreen").classList.add("open");
+    const el = document.getElementById("dossierList");
+    el.innerHTML = `<div class="empty-state">Загрузка...</div>`;
+    try {
+      const r = await fetch(`${DOSSIER_API}/api/dossiers`);
+      const d = await r.json();
+      if (!d.length) { el.innerHTML = `<div class="empty-state">Досье пока нет</div>`; return; }
+      el.innerHTML = d.map(x => {
+        const sm = x.summary || "";
+        return `<div class="signal-item" style="cursor:pointer" onclick="openDossierCoin('${dEsc(x.symbol)}')"><div class="src">${dEsc(x.symbol.replace(/USDT$/, ""))} · риск: ${dEsc(x.risk || "—")}</div><div class="detail">${dEsc(sm.slice(0, 160))}${sm.length > 160 ? "…" : ""}</div><div class="time">${dEsc(new Date(x.updated).toLocaleDateString("ru-RU"))}</div></div>`;
+      }).join("");
+    } catch (e) {
+      el.innerHTML = `<div class="empty-state">Досье недоступно</div>`;
+    }
+  }
+  function openDossierCoin(symbol) { closeScreen("dossierListScreen"); openCoinDetail(symbol); }
+  loadDossierCount();
+
   async function openCoinDetail(symbol) {
     tg.HapticFeedback.impactOccurred("light");
     currentDetailSymbol = symbol;
@@ -1649,10 +1687,10 @@
     } catch (e) {
       document.getElementById("detailPrice").textContent = "Монета не найдена в базе";
     }
+    loadDossier(symbol);
     await loadKlines(symbol);
     renderChart();
     loadNews(symbol);
-    loadDossier(symbol);
     loadMarketData(symbol);
     loadExchanges(symbol);
 
