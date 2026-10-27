@@ -1604,7 +1604,7 @@
     try {
       const r = await fetch(`${DOSSIER_API}/api/coin/${symbol}/dossier`);
       if (currentDetailSymbol !== symbol) return;
-      if (r.status === 404) { el.innerHTML = `<div class="empty-state">Досье ещё не собрано</div>`; return; }
+      if (r.status === 404) { await loadAutoDossier(symbol); return; }
       renderDossier(await r.json());
     } catch (e) {
       el.innerHTML = `<div class="empty-state">Досье недоступно</div>`;
@@ -1668,6 +1668,17 @@
   }
   loadBankCount();
 
+  async function loadAutoDossier(symbol) {
+    const el = document.getElementById("dossierSection");
+    try {
+      const r = await fetch(`${DOSSIER_API}/api/coin/${symbol}/auto`);
+      if (currentDetailSymbol !== symbol) return;
+      const a = await r.json();
+      const L = (a.links || []).map(x => `<a href="${dEsc(x.url)}" target="_blank" style="display:inline-block;margin:3px 6px 3px 0;padding:4px 10px;border-radius:12px;background:rgba(255,255,255,0.06);color:var(--text);text-decoration:none;font-size:12px;">${dEsc(x.platform)}${x.trust === "unverified" ? " ?" : ""}</a>`).join("");
+      const P = (a.posts || []).map(x => `<div style="margin-top:8px;font-size:12px;"><span style="color:var(--text-dim)">${dEsc(String(x.ts).slice(0,10))} · ${dEsc(x.src)}</span><br>${dEsc((x.text || "").slice(0,220))}</div>`).join("");
+      el.innerHTML = `<div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;">Авто-досье, не проверено вручную. «?» — ссылка не подтверждена</div><div style="font-weight:600;">${dEsc(a.name || a.coin)}</div><div style="margin-top:6px;">${L || "Ссылок нет"}</div>${P || '<div style="margin-top:8px;font-size:12px;color:var(--text-dim)">Постов из подтверждённых каналов нет</div>'}`;
+    } catch (e) { el.innerHTML = `<div class="empty-state">Досье ещё не собрано</div>`; }
+  }
   async function loadDossierCount() {
     const c = document.getElementById("dossierCount");
     try {
