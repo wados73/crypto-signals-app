@@ -37,6 +37,9 @@
   .quick-nav-btn.volume-mcap .icon-badge { background: rgba(230,126,34,0.15); color: #E67E22; }
   .quick-nav-btn.new-listing .icon-badge { background: rgba(29,158,117,0.15); color: #1D9E75; }
   .quick-nav-btn.arbitrage .icon-badge { background: rgba(186,117,23,0.15); color: #BA7517; }
+  .quick-nav-btn.dossier .icon-badge { background: rgba(224,86,138,0.15); color: #E0568A; }
+  .quick-nav-btn.bank .icon-badge { background: rgba(240,185,11,0.15); color: #F0B90B; }
+  .quick-nav-btn.catalyst .icon-badge { background: rgba(229,72,77,0.15); color: #E5484D; }
   .quick-nav-btn .count { display: block; font-size: 11px; color: var(--text-dim); font-weight: 400; margin-top: 6px; }
   .feed-item { background: var(--card-bg); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; }
   .feed-item .top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
@@ -172,7 +175,7 @@
     <button class="quick-nav-btn top-movers" onclick="openTopMoversScreen()"><span class="icon-badge"><i class="ti ti-chart-bar"></i></span>Топ движения<span class="count" id="topMoversCount">···</span></button>
   </div>
 
-  <div class="quick-nav-row"><button class="quick-nav-btn" onclick="openDossierList()"><span class="icon-badge"><i class="ti ti-file-text"></i></span>Досье<span class="count" id="dossierCount">···</span></button><button class="quick-nav-btn" onclick="openBankUsdt()"><span class="icon-badge"><i class="ti ti-building-bank"></i></span>Банки USDT<span class="count" id="bankCount">···</span></button></div>
+  <div class="quick-nav-row"><button class="quick-nav-btn dossier" onclick="openDossierList()"><span class="icon-badge"><i class="ti ti-file-text"></i></span>Досье<span class="count" id="dossierCount">···</span></button><button class="quick-nav-btn bank" onclick="openBankUsdt()"><span class="icon-badge"><i class="ti ti-building-bank"></i></span>Банки USDT<span class="count" id="bankCount">···</span></button></div>
 
   <div class="grid" id="coinsGrid">
     <div class="empty-state">Загрузка сигналов...</div>
