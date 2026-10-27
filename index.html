@@ -1873,9 +1873,17 @@
     renderChart();
   }
 
+  async function klinesFetch(sym, itv, lim) {
+    const q = `symbol=${sym}&interval=${itv}&limit=${lim}`;
+    try {
+      const r = await fetch(`https://api.binance.com/api/v3/klines?${q}`);
+      if (r.ok) return r;
+    } catch (e) {}
+    return fetch(`https://fapi.binance.com/fapi/v1/klines?${q}`);
+  }
   async function loadKlines(symbol) {
     try {
-      const resp = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${currentInterval}&limit=${currentLimit}`);
+      const resp = await klinesFetch(symbol, currentInterval, currentLimit);
       lastKlines = await resp.json();
     } catch (e) {
       console.error("Ошибка загрузки данных графика:", e);
@@ -1884,7 +1892,7 @@
   }
 
   function renderChart() {
-    if (!lastKlines) return;
+    if (!Array.isArray(lastKlines)) return;
     if (currentChartType === "line") { renderLineChart(); } else { renderCandlestickChart(); }
   }
 
