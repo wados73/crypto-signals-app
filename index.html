@@ -172,12 +172,20 @@
     <button class="quick-nav-btn top-movers" onclick="openTopMoversScreen()"><span class="icon-badge"><i class="ti ti-chart-bar"></i></span>Топ движения<span class="count" id="topMoversCount">···</span></button>
   </div>
 
-  <div class="quick-nav-row"><button class="quick-nav-btn" onclick="openDossierList()"><span class="icon-badge"><i class="ti ti-file-text"></i></span>Досье<span class="count" id="dossierCount">···</span></button></div>
+  <div class="quick-nav-row"><button class="quick-nav-btn" onclick="openDossierList()"><span class="icon-badge"><i class="ti ti-file-text"></i></span>Досье<span class="count" id="dossierCount">···</span></button><button class="quick-nav-btn" onclick="openBankUsdt()"><span class="icon-badge"><i class="ti ti-building-bank"></i></span>Банки USDT<span class="count" id="bankCount">···</span></button></div>
 
   <div class="grid" id="coinsGrid">
     <div class="empty-state">Загрузка сигналов...</div>
   </div>
   <button class="option-btn" style="width:100%; margin-top:10px; padding:14px;" onclick="openAllSignals()">Смотреть больше</button>
+
+  <div id="bankUsdtScreen" class="screen">
+    <div class="header">
+      <button class="back-btn" onclick="closeScreen('bankUsdtScreen')"><i class="ti ti-arrow-left"></i></button>
+      <div class="detail-title">Банки / USDT</div>
+    </div>
+    <div id="bankUsdtBody" style="padding:0 16px;"><div class="empty-state">Загрузка...</div></div>
+  </div>
 
   <div id="dossierListScreen" class="screen">
     <div class="header">
@@ -1620,6 +1628,42 @@
     h += `<div class="empty-state" style="margin-top:10px">Обновлено: ${dEsc(new Date(d.updated).toLocaleDateString("ru-RU"))}</div>`;
     el.innerHTML = h;
   }
+
+  async function loadBankCount() {
+    const c = document.getElementById("bankCount");
+    try {
+      const d = await (await fetch(`${DOSSIER_API}/api/bank-usdt`)).json();
+      const L = d.bc && d.bc.loops ? Object.values(d.bc.loops).filter(v => v != null) : [];
+      if (L.length) { const v = (Math.max(...L) - 1) * 100; c.textContent = (v >= 0 ? "+" : "") + v.toFixed(1) + "%"; } else { c.textContent = "–"; }
+    } catch (e) { c.textContent = "–"; }
+  }
+  function bpct(v) { return v == null ? "—" : ((v - 1) * 100 >= 0 ? "+" : "") + ((v - 1) * 100).toFixed(2) + "%"; }
+  async function openBankUsdt() {
+    tg.HapticFeedback.impactOccurred("light");
+    document.getElementById("bankUsdtScreen").classList.add("open");
+    const el = document.getElementById("bankUsdtBody");
+    el.innerHTML = `<div class="empty-state">Загрузка...</div>`;
+    try {
+      const d = await (await fetch(`${DOSSIER_API}/api/bank-usdt`)).json();
+      const item = (a, b, c) => `<div class="signal-item"><div class="src">${dEsc(a)}</div><div class="detail">${b}</div>${c ? `<div class="time">${c}</div>` : ""}</div>`;
+      let h = `<div class="empty-state" style="text-align:left">Только наблюдение. Комиссии, лимиты и риски не учтены, ничего не проверено.</div>`;
+      if (d.bc) {
+        const L = d.bc.loops, q = d.bc.quotes;
+        h += item("BestChange: петли (0% = ноль)", `Mono→USDT→Mono: ${bpct(L.MUM)}<br>Privat→USDT→Privat: ${bpct(L.PUP)}<br>Mono→USDT→Privat: ${bpct(L.MUP)}<br>Privat→USDT→Mono: ${bpct(L.PUM)}`, new Date(d.bc.t * 1000).toLocaleString("ru-RU"));
+        if (q.M_U && q.U_M) h += item("BestChange: курсы Mono", `Купить USDT: ${(1 / q.M_U[0]).toFixed(2)} грн (${dEsc(q.M_U[2])})<br>Продать USDT: ${q.U_M[0].toFixed(2)} грн (${dEsc(q.U_M[2])})`);
+        const H = (d.bc_hist || []).map(x => x[1]).filter(v => v != null);
+        if (H.length > 2) h += item("Петля Mono за 24 часа", `от ${bpct(Math.min(...H))} до ${bpct(Math.max(...H))}`);
+      }
+      if ((d.banks || []).length) {
+        h += `<div class="empty-state" style="margin-top:10px;text-align:left">Binance P2P по банкам (грн за USDT)</div>`;
+        d.banks.forEach(b => { h += item(b.bank, `Покупка (обычная): ${b.buy == null ? "—" : b.buy}<br>Продажа (премиальная, высокий риск): ${b.sell == null ? "—" : b.sell}`, b.sell_min ? `продажа от ${b.sell_min} грн, рейтинг продавцов ${Math.round((b.sell_rate || 0) * 100)}%` : ""); });
+      }
+      const g = (d.p2p_hist || []).map(x => x[2] / x[1] - 1);
+      if (g.length) { const m = g.slice().sort((a, b) => a - b)[Math.floor(g.length / 2)]; h += item("Разрыв «продажа / покупка» в P2P", `Сейчас около ${(m * 100).toFixed(1)}%, и держится уже недели. Это не арбитраж: объявления с жёсткими лимитами и повышенным риском, а не возможность заработать.`); }
+      el.innerHTML = h;
+    } catch (e) { el.innerHTML = `<div class="empty-state">Данные недоступны</div>`; }
+  }
+  loadBankCount();
 
   async function loadDossierCount() {
     const c = document.getElementById("dossierCount");
