@@ -39,6 +39,7 @@
   .quick-nav-btn.arbitrage .icon-badge { background: rgba(186,117,23,0.15); color: #BA7517; }
   .quick-nav-btn.dossier .icon-badge { background: rgba(224,86,138,0.15); color: #E0568A; }
   .quick-nav-btn.bank .icon-badge { background: rgba(240,185,11,0.15); color: #F0B90B; }
+  .quick-nav-btn.outlook .icon-badge { background: rgba(23,162,184,0.15); color: #17A2B8; }
   .quick-nav-btn.catalyst .icon-badge { background: rgba(229,72,77,0.15); color: #E5484D; }
   .quick-nav-btn .count { display: block; font-size: 11px; color: var(--text-dim); font-weight: 400; margin-top: 6px; }
   .feed-item { background: var(--card-bg); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; }
@@ -176,6 +177,7 @@
   </div>
 
   <div class="quick-nav-row"><button class="quick-nav-btn dossier" onclick="openDossierList()"><span class="icon-badge"><i class="ti ti-file-text"></i></span>Досье<span class="count" id="dossierCount">···</span></button><button class="quick-nav-btn bank" onclick="openBankUsdt()"><span class="icon-badge"><i class="ti ti-building-bank"></i></span>Банки USDT<span class="count" id="bankCount">···</span></button></div>
+  <div class="quick-nav-row"><button class="quick-nav-btn outlook" onclick="openOutlookFeed()"><span class="icon-badge"><i class="ti ti-bulb"></i></span>Что ожидать<span class="count" id="outlookCount">···</span></button></div>
 
   <div class="grid" id="coinsGrid">
     <div class="empty-state">Загрузка сигналов...</div>
@@ -1697,6 +1699,41 @@
       }).join("");
     } catch (e) { el.innerHTML = ""; }
   }
+  async function loadOutlookCount() {
+    const c = document.getElementById("outlookCount");
+    try {
+      const r = await fetch(`${DOSSIER_API}/api/outlook-feed`);
+      const ev = (await r.json()).events || [];
+      const f = ev.filter(e => e.fresh).length;
+      c.textContent = f ? "актуально: " + f : "событий: " + ev.length;
+    } catch (e) { c.textContent = "–"; }
+  }
+  async function openOutlookFeed() {
+    tg.HapticFeedback.impactOccurred("light");
+    let sc = document.getElementById("outlookFeedScreen");
+    if (!sc) {
+      const ref = document.getElementById("dossierListScreen");
+      sc = ref.cloneNode(true);
+      sc.innerHTML = sc.innerHTML.replaceAll("dossierListScreen", "outlookFeedScreen").replaceAll("dossierList", "outlookFeedList").replaceAll("Досье", "Что ожидать");
+      sc.id = "outlookFeedScreen";
+      sc.classList.remove("open");
+      ref.parentNode.appendChild(sc);
+    }
+    sc.classList.add("open");
+    const el = document.getElementById("outlookFeedList");
+    el.innerHTML = `<div class="empty-state">Загрузка...</div>`;
+    try {
+      const r = await fetch(`${DOSSIER_API}/api/outlook-feed`);
+      const ev = (await r.json()).events || [];
+      if (!ev.length) { el.innerHTML = `<div class="empty-state">За последние 72 часа событий не найдено</div>`; return; }
+      el.innerHTML = ev.map(e => {
+        const ago = e.age_min < 60 ? e.age_min + " мин назад" : Math.round(e.age_min / 60) + " ч назад";
+        const st = e.conf === "нет" ? "" : (e.fresh ? " · актуально" : " · уже прошло");
+        return `<div style="background:var(--card-bg);border-radius:14px;padding:12px;margin:0 0 8px;font-size:12px;"><div style="font-weight:700;font-size:14px;">${dEsc(e.coin)} <span style="font-weight:400;font-size:11px;color:var(--text-dim)">${dEsc(ago)} · ${dEsc(e.src)}${st}</span></div><div style="margin-top:4px;color:var(--text-dim)">${dEsc((e.title || "").slice(0, 120))}</div><div style="margin-top:6px;font-weight:600;">${dEsc(e.name)}</div><div style="margin-top:2px;">${dEsc(e.say)}</div><div style="margin-top:4px;color:var(--text-dim)">Уверенность: ${dEsc(e.conf)}${e.n ? " · случаев в истории: " + e.n : ""}</div></div>`;
+      }).join("");
+    } catch (e) { el.innerHTML = `<div class="empty-state">Недоступно</div>`; }
+  }
+  setTimeout(loadOutlookCount, 1500);
   async function loadDossierCount() {
     const c = document.getElementById("dossierCount");
     try {
