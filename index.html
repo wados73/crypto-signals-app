@@ -1716,7 +1716,7 @@
       const rs = k.slice(-31, -1).map(R).sort((a, b) => a - b);
       const md = (rs[14] + rs[15]) / 2;
       const av = k.slice(-9, -2).reduce((s, x) => s + V(x), 0) / 7;
-      if (!(md > 0) || !(av > 0)) return;
+      if (!(md > 0.012) || !(av > 0)) return;
       const pr = R(y) / md, vr = V(y) / av;
       const pi = pr < 0.6 ? 0 : pr < 1.2 ? 1 : pr < 2 ? 2 : 3;
       const vi = vr < 0.7 ? 0 : vr < 1.5 ? 1 : vr < 3 ? 2 : 3;
