@@ -246,6 +246,7 @@
 
     <div class="section-title">Досье</div>
     <div id="outlookSection"></div>
+    <div id="volSection"></div>
     <div id="dossierSection"><div class="empty-state">Загрузка...</div></div>
 
     <div class="section-title">Новости</div>
@@ -1699,6 +1700,31 @@
       }).join("");
     } catch (e) { el.innerHTML = ""; }
   }
+  const VOL_TABLE = [[4,4,4,null],[6,7,8,7],[12,11,13,15],[33,28,31,42]];
+  async function loadVol(symbol) {
+    const el = document.getElementById("volSection");
+    if (!el) return;
+    el.innerHTML = "";
+    try {
+      const r = await klinesFetch(symbol, "1d", 40);
+      if (currentDetailSymbol !== symbol) return;
+      const k = await r.json();
+      if (!Array.isArray(k) || k.length < 34) return;
+      const R = x => (parseFloat(x[2]) - parseFloat(x[3])) / parseFloat(x[1]);
+      const V = x => parseFloat(x[7]);
+      const y = k[k.length - 2];
+      const rs = k.slice(-31, -1).map(R).sort((a, b) => a - b);
+      const md = (rs[14] + rs[15]) / 2;
+      const av = k.slice(-9, -2).reduce((s, x) => s + V(x), 0) / 7;
+      if (!(md > 0) || !(av > 0)) return;
+      const pr = R(y) / md, vr = V(y) / av;
+      const pi = pr < 0.6 ? 0 : pr < 1.2 ? 1 : pr < 2 ? 2 : 3;
+      const vi = vr < 0.7 ? 0 : vr < 1.5 ? 1 : vr < 3 ? 2 : 3;
+      let p = VOL_TABLE[pi][vi]; if (p == null) p = VOL_TABLE[pi][2];
+      const hot = p >= 25;
+      el.innerHTML = `<div style="background:var(--card-bg);border-radius:14px;padding:12px;margin-bottom:8px;font-size:12px;"><div style="font-weight:600;">Шанс сильного движения сегодня: ${p}%</div><div style="margin-top:4px;${hot ? "color:#E0568A;" : "color:var(--text-dim);"}">${hot ? "Выше обычного (в среднем по рынку 10%)" : p <= 5 ? "Ниже обычного (в среднем по рынку 10%)" : "Около обычного (в среднем по рынку 10%)"}</div><div style="margin-top:4px;color:var(--text-dim)">Сильное = размах за сутки более 6% и вдвое больше обычного. Считано по 500 тысячам монето-дней. Направление не предсказывается.</div></div>`;
+    } catch (e) { el.innerHTML = ""; }
+  }
   async function loadOutlookCount() {
     const c = document.getElementById("outlookCount");
     try {
@@ -1809,6 +1835,7 @@
     }
     loadDossier(symbol);
     loadOutlook(symbol);
+    loadVol(symbol);
     await loadKlines(symbol);
     renderChart();
     loadNews(symbol);
